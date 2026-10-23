@@ -1,0 +1,1401 @@
+{
+ "schema": "wealth-dashboard/1",
+ "settings": {
+  "title": "Wealth dashboard",
+  "owner": "Alex (demo)",
+  "currency": "EUR",
+  "language": "en",
+  "locale": "en-GB",
+  "checkin_day": 20,
+  "created": "2026-10-23",
+  "updated": "2026-10-23",
+  "goal": {
+   "net_worth": 500000,
+   "by": "2030-12-31"
+  },
+  "inflation": {
+   "annual_rate": 0.025
+  },
+  "demo": true
+ },
+ "accounts": [
+  {
+   "id": "brokerage",
+   "name": "Brokerage",
+   "group": "invested",
+   "method": "holdings",
+   "institution": "Lumen Broker",
+   "source": "prices via web search",
+   "class": "equity",
+   "cash": 0.0
+  },
+  {
+   "id": "crypto",
+   "name": "Bitcoin wallet",
+   "group": "invested",
+   "method": "holdings",
+   "class": "crypto",
+   "source": "on-chain balance + BTC/EUR price"
+  },
+  {
+   "id": "gold",
+   "name": "Gold coins",
+   "group": "invested",
+   "method": "holdings",
+   "class": "gold",
+   "source": "dealer buyback price"
+  },
+  {
+   "id": "current",
+   "name": "Current account",
+   "group": "cash",
+   "method": "statement",
+   "institution": "Northbank",
+   "class": "cash",
+   "source": "monthly export"
+  },
+  {
+   "id": "savings",
+   "name": "Savings account",
+   "group": "cash",
+   "method": "ask",
+   "institution": "Northbank",
+   "class": "cash"
+  },
+  {
+   "id": "pension",
+   "name": "Workplace pension",
+   "group": "retirement",
+   "method": "ask",
+   "institution": "Harbor Pensions",
+   "class": "pension",
+   "source": "pension portal, quarterly"
+  },
+  {
+   "id": "apartment",
+   "name": "Apartment",
+   "group": "property",
+   "method": "ask",
+   "class": "property",
+   "source": "yearly estimate from the land registry index"
+  },
+  {
+   "id": "car",
+   "name": "Car",
+   "group": "other",
+   "method": "formula",
+   "class": "vehicle",
+   "formula": {
+    "type": "depreciation",
+    "purchase_price": 27500,
+    "purchase_date": "2022-03-15",
+    "annual_rate": 0.14
+   }
+  },
+  {
+   "id": "mortgage",
+   "name": "Mortgage",
+   "group": "debt",
+   "method": "formula",
+   "institution": "Northbank",
+   "formula": {
+    "type": "annuity",
+    "principal": 265000,
+    "annual_rate": 0.031,
+    "years": 30,
+    "start": "2022-09-01"
+   }
+  }
+ ],
+ "holdings": [
+  {
+   "id": "vwce",
+   "account": "brokerage",
+   "name": "FTSE All-World ETF",
+   "ticker": "VWCE",
+   "isin": "IE00BK5BQT80",
+   "class": "equity",
+   "quantity": 366.7069,
+   "price": 141.62,
+   "currency": "EUR",
+   "cost": 37632.63,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "cspx",
+   "account": "brokerage",
+   "name": "S&P 500 ETF",
+   "ticker": "CSPX",
+   "isin": "IE00B5BMR087",
+   "class": "equity",
+   "quantity": 31.8559,
+   "price": 652.1,
+   "currency": "EUR",
+   "cost": 13666.6,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "msft",
+   "account": "brokerage",
+   "name": "Microsoft",
+   "ticker": "MSFT",
+   "isin": "US5949181045",
+   "class": "equity",
+   "quantity": 17.1421,
+   "price": 512.4,
+   "currency": "USD",
+   "fx": 0.86,
+   "cost": 4691.87,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "asml",
+   "account": "brokerage",
+   "name": "ASML Holding",
+   "ticker": "ASML",
+   "isin": "NL0010273215",
+   "class": "equity",
+   "quantity": 8.8744,
+   "price": 744.8,
+   "currency": "EUR",
+   "cost": 7031.55,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "govt",
+   "account": "brokerage",
+   "name": "Euro Govt Bond ETF",
+   "ticker": "IBGS",
+   "isin": "IE00B14X4Q57",
+   "class": "bonds",
+   "quantity": 51.1955,
+   "price": 147.55,
+   "currency": "EUR",
+   "cost": 7787.52,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "btc",
+   "account": "crypto",
+   "name": "Bitcoin",
+   "ticker": "BTC",
+   "class": "crypto",
+   "quantity": 0.31,
+   "unit": "BTC",
+   "price": 131209.84,
+   "cost": 13950.0,
+   "price_date": "2026-09-30",
+   "address": "bc1q-demo-address-not-real"
+  },
+  {
+   "id": "gold-coins",
+   "account": "gold",
+   "name": "Gold coins (1 oz)",
+   "ticker": "XAU",
+   "class": "gold",
+   "quantity": 10.0,
+   "unit": "oz",
+   "price": 3350.26,
+   "cost": 10350.0,
+   "price_date": "2026-09-30",
+   "price_source": "dealer buyback price"
+  }
+ ],
+ "snapshots": [
+  {
+   "date": "2021-04-30",
+   "values": {
+    "brokerage": 18000.0,
+    "crypto": 19702.09,
+    "gold": 10216.0,
+    "current": 3592.68,
+    "savings": 15479.48,
+    "pension": 21420.0
+   }
+  },
+  {
+   "date": "2021-05-31",
+   "values": {
+    "brokerage": 19152.82,
+    "crypto": 13612.44,
+    "gold": 10481.38,
+    "current": 4475.83,
+    "savings": 16291.46,
+    "pension": 22199.01
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-06-30",
+   "values": {
+    "brokerage": 19801.06,
+    "crypto": 10655.37,
+    "gold": 11207.94,
+    "current": 5493.32,
+    "savings": 16850.8,
+    "pension": 22617.79
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-07-31",
+   "values": {
+    "brokerage": 20382.3,
+    "crypto": 11233.91,
+    "gold": 11418.06,
+    "current": 5553.98,
+    "savings": 17379.76,
+    "pension": 22990.67
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-08-31",
+   "values": {
+    "brokerage": 20485.23,
+    "crypto": 14007.97,
+    "gold": 11374.36,
+    "current": 6111.9,
+    "savings": 18318.17,
+    "pension": 23040.42
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-09-30",
+   "values": {
+    "brokerage": 21143.31,
+    "crypto": 15528.67,
+    "gold": 11349.6,
+    "current": 5593.26,
+    "savings": 19252.22,
+    "pension": 23465.87
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-10-31",
+   "values": {
+    "brokerage": 22866.39,
+    "crypto": 11056.55,
+    "gold": 11447.29,
+    "current": 6295.48,
+    "savings": 19925.54,
+    "pension": 24600.45
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-11-30",
+   "values": {
+    "brokerage": 24079.31,
+    "crypto": 6778.58,
+    "gold": 11867.56,
+    "current": 5073.7,
+    "savings": 20836.54,
+    "pension": 25383.81
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-12-31",
+   "values": {
+    "brokerage": 28382.74,
+    "crypto": 7274.66,
+    "gold": 11854.54,
+    "current": 5071.13,
+    "savings": 21446.11,
+    "pension": 26533.36
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2022-01-31",
+   "values": {
+    "brokerage": 29542.45,
+    "crypto": 6534.08,
+    "gold": 12098.44,
+    "current": 5390.86,
+    "savings": 22207.61,
+    "pension": 27239.26
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-02-28",
+   "values": {
+    "brokerage": 30886.73,
+    "crypto": 5467.94,
+    "gold": 12874.18,
+    "current": 6424.63,
+    "savings": 22754.59,
+    "pension": 28043.35
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-03-31",
+   "values": {
+    "brokerage": 32016.79,
+    "crypto": 6410.51,
+    "gold": 11999.51,
+    "current": 7223.18,
+    "savings": 23677.69,
+    "pension": 28724.87,
+    "car": 27318.91
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-04-30",
+   "values": {
+    "brokerage": 30911.93,
+    "crypto": 7643.16,
+    "gold": 11702.91,
+    "current": 8227.13,
+    "savings": 24350.6,
+    "pension": 28200.21,
+    "car": 26982.57
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-05-31",
+   "values": {
+    "brokerage": 32829.31,
+    "crypto": 7957.75,
+    "gold": 11893.87,
+    "current": 7803.52,
+    "savings": 25203.38,
+    "pension": 29313.93,
+    "car": 26639.37
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-06-30",
+   "values": {
+    "brokerage": 34390.08,
+    "crypto": 8398.01,
+    "gold": 12143.04,
+    "current": 7938.39,
+    "savings": 25922.01,
+    "pension": 30221.88,
+    "car": 26311.4
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-07-31",
+   "values": {
+    "brokerage": 35984.26,
+    "crypto": 9116.02,
+    "gold": 12339.24,
+    "current": 8924.13,
+    "savings": 26582.5,
+    "pension": 31139.73,
+    "car": 25976.74
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-08-31",
+   "values": {
+    "brokerage": 34627.35,
+    "crypto": 11586.83,
+    "gold": 12290.69,
+    "current": 7491.25,
+    "savings": 9000.0,
+    "pension": 30517.69,
+    "car": 25646.34
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-09-30",
+   "values": {
+    "brokerage": 33277.01,
+    "crypto": 12919.83,
+    "gold": 12642.88,
+    "current": 7299.58,
+    "savings": 9037.53,
+    "pension": 29879.93,
+    "apartment": 319000,
+    "mortgage": 265000.0,
+    "car": 25330.59
+   },
+   "contributions": 650.0,
+   "note": "Bought the apartment"
+  },
+  {
+   "date": "2022-10-31",
+   "values": {
+    "brokerage": 33084.92,
+    "crypto": 14198.69,
+    "gold": 12863.67,
+    "current": 7891.79,
+    "savings": 9335.57,
+    "pension": 29846.26,
+    "apartment": 320000,
+    "mortgage": 264552.99,
+    "car": 25008.41
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-11-30",
+   "values": {
+    "brokerage": 33427.52,
+    "crypto": 15670.21,
+    "gold": 12777.98,
+    "current": 7554.5,
+    "savings": 9594.42,
+    "pension": 30099.87,
+    "apartment": 321000,
+    "mortgage": 264104.82,
+    "car": 24700.51
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-12-31",
+   "values": {
+    "brokerage": 37249.65,
+    "crypto": 11988.81,
+    "gold": 13824.51,
+    "current": 8155.71,
+    "savings": 9863.89,
+    "pension": 30883.0,
+    "apartment": 323000,
+    "mortgage": 263655.5,
+    "car": 24386.34
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2023-01-31",
+   "values": {
+    "brokerage": 38151.28,
+    "crypto": 14639.27,
+    "gold": 14096.22,
+    "current": 9077.95,
+    "savings": 10116.54,
+    "pension": 31428.18,
+    "apartment": 324000,
+    "mortgage": 263205.02,
+    "car": 24076.17
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-02-28",
+   "values": {
+    "brokerage": 39880.85,
+    "crypto": 17110.62,
+    "gold": 23314.52,
+    "current": 9814.17,
+    "savings": 10555.52,
+    "pension": 32381.77,
+    "apartment": 325000,
+    "mortgage": 262753.37,
+    "car": 23799.4
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-03-31",
+   "values": {
+    "brokerage": 39896.55,
+    "crypto": 18834.34,
+    "gold": 23454.79,
+    "current": 10920.6,
+    "savings": 10734.9,
+    "pension": 32492.75,
+    "apartment": 326000,
+    "mortgage": 262300.56,
+    "car": 23496.69
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-04-30",
+   "values": {
+    "brokerage": 41353.69,
+    "crypto": 13187.43,
+    "gold": 23507.15,
+    "current": 11552.53,
+    "savings": 10769.78,
+    "pension": 33307.17,
+    "apartment": 327000,
+    "mortgage": 261846.57,
+    "car": 23207.41
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-05-31",
+   "values": {
+    "brokerage": 42974.58,
+    "crypto": 12061.37,
+    "gold": 23674.46,
+    "current": 10908.36,
+    "savings": 10794.25,
+    "pension": 34196.35,
+    "apartment": 329000,
+    "mortgage": 261391.42,
+    "car": 22912.23
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-06-30",
+   "values": {
+    "brokerage": 42910.21,
+    "crypto": 13879.84,
+    "gold": 21949.96,
+    "current": 11663.2,
+    "savings": 10906.41,
+    "pension": 34275.28,
+    "apartment": 330000,
+    "mortgage": 260935.09,
+    "car": 22630.14
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-07-31",
+   "values": {
+    "brokerage": 46725.53,
+    "crypto": 10079.62,
+    "gold": 21826.88,
+    "current": 11714.9,
+    "savings": 11143.35,
+    "pension": 36212.3,
+    "apartment": 331000,
+    "mortgage": 260477.57,
+    "car": 22342.3
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-08-31",
+   "values": {
+    "brokerage": 48760.99,
+    "crypto": 9944.11,
+    "gold": 22683.74,
+    "current": 11756.31,
+    "savings": 11332.37,
+    "pension": 37276.54,
+    "apartment": 332000,
+    "mortgage": 260018.88,
+    "car": 22058.13
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-09-30",
+   "values": {
+    "brokerage": 52043.41,
+    "crypto": 11725.35,
+    "gold": 22092.68,
+    "current": 11968.19,
+    "savings": 11807.32,
+    "pension": 38903.99,
+    "apartment": 333000,
+    "mortgage": 259559.0,
+    "car": 21786.56
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-10-31",
+   "values": {
+    "brokerage": 51908.98,
+    "crypto": 9453.09,
+    "gold": 22247.3,
+    "current": 12056.97,
+    "savings": 12131.04,
+    "pension": 38972.16,
+    "apartment": 335000,
+    "mortgage": 259097.94,
+    "car": 21509.45
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-11-30",
+   "values": {
+    "brokerage": 51541.48,
+    "crypto": 12039.62,
+    "gold": 23083.92,
+    "current": 12767.31,
+    "savings": 12367.28,
+    "pension": 38933.81,
+    "apartment": 336000,
+    "mortgage": 258635.68,
+    "car": 21244.64
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-12-31",
+   "values": {
+    "brokerage": 54455.74,
+    "crypto": 13295.52,
+    "gold": 23884.59,
+    "current": 12008.51,
+    "savings": 12560.63,
+    "pension": 39246.96,
+    "apartment": 337000,
+    "mortgage": 258172.23,
+    "car": 20974.42
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2024-01-31",
+   "values": {
+    "brokerage": 55598.4,
+    "crypto": 13188.86,
+    "gold": 25167.94,
+    "current": 12766.34,
+    "savings": 12623.09,
+    "pension": 39771.89,
+    "apartment": 338000,
+    "mortgage": 257707.58,
+    "car": 20707.64
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-02-29",
+   "values": {
+    "brokerage": 58306.4,
+    "crypto": 14085.42,
+    "gold": 24109.82,
+    "current": 12437.74,
+    "savings": 13003.98,
+    "pension": 40967.9,
+    "apartment": 340000,
+    "mortgage": 257241.73,
+    "car": 20461.14
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-03-31",
+   "values": {
+    "brokerage": 60252.43,
+    "crypto": 15775.29,
+    "gold": 24071.22,
+    "current": 13013.02,
+    "savings": 13264.89,
+    "pension": 41828.88,
+    "apartment": 341000,
+    "mortgage": 256774.68,
+    "car": 20200.89
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-04-30",
+   "values": {
+    "brokerage": 60640.32,
+    "crypto": 16331.58,
+    "gold": 24041.65,
+    "current": 13596.43,
+    "savings": 13544.81,
+    "pension": 42035.57,
+    "apartment": 342000,
+    "mortgage": 256306.42,
+    "car": 19952.19
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-05-31",
+   "values": {
+    "brokerage": 59850.72,
+    "crypto": 19586.55,
+    "gold": 24707.57,
+    "current": 12890.13,
+    "savings": 13617.13,
+    "pension": 41752.83,
+    "apartment": 343000,
+    "mortgage": 255836.95,
+    "car": 19698.41
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-06-30",
+   "values": {
+    "brokerage": 60075.45,
+    "crypto": 17826.76,
+    "gold": 25739.2,
+    "current": 12534.81,
+    "savings": 13987.86,
+    "pension": 41890.19,
+    "apartment": 345000,
+    "mortgage": 255366.27,
+    "car": 19455.9
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-07-31",
+   "values": {
+    "brokerage": 64273.3,
+    "crypto": 16929.04,
+    "gold": 23899.23,
+    "current": 12227.21,
+    "savings": 14139.58,
+    "pension": 43689.93,
+    "apartment": 346000,
+    "mortgage": 254894.37,
+    "car": 19208.43
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-08-31",
+   "values": {
+    "brokerage": 63746.3,
+    "crypto": 20021.46,
+    "gold": 24894.89,
+    "current": 11786.08,
+    "savings": 14215.77,
+    "pension": 43527.93,
+    "apartment": 347000,
+    "mortgage": 254421.26,
+    "car": 18964.11
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-09-30",
+   "values": {
+    "brokerage": 65781.04,
+    "crypto": 20427.65,
+    "gold": 24037.85,
+    "current": 11769.86,
+    "savings": 14334.21,
+    "pension": 44412.83,
+    "apartment": 349000,
+    "mortgage": 253946.92,
+    "car": 18730.64
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-10-31",
+   "values": {
+    "brokerage": 68306.34,
+    "crypto": 17876.77,
+    "gold": 24746.83,
+    "current": 12066.55,
+    "savings": 14311.0,
+    "pension": 45491.23,
+    "apartment": 350000,
+    "mortgage": 253471.35,
+    "car": 18492.4
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-11-30",
+   "values": {
+    "brokerage": 65920.11,
+    "crypto": 20869.92,
+    "gold": 23861.78,
+    "current": 12339.61,
+    "savings": 14494.01,
+    "pension": 44598.07,
+    "apartment": 351000,
+    "mortgage": 252994.56,
+    "car": 18264.73
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-12-31",
+   "values": {
+    "brokerage": 70001.85,
+    "crypto": 26097.41,
+    "gold": 24202.42,
+    "current": 11137.21,
+    "savings": 14840.97,
+    "pension": 45294.81,
+    "apartment": 352000,
+    "mortgage": 252516.54,
+    "car": 18032.41
+   },
+   "contributions": 3400.0
+  },
+  {
+   "date": "2025-01-31",
+   "values": {
+    "brokerage": 74971.57,
+    "crypto": 24657.56,
+    "gold": 25287.65,
+    "current": 11018.13,
+    "savings": 14833.37,
+    "pension": 47294.8,
+    "apartment": 354000,
+    "mortgage": 252037.28,
+    "car": 17803.06
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-02-28",
+   "values": {
+    "brokerage": 70770.07,
+    "crypto": 19607.72,
+    "gold": 25401.96,
+    "current": 10509.34,
+    "savings": 15128.29,
+    "pension": 45783.87,
+    "apartment": 355000,
+    "mortgage": 251556.78,
+    "car": 17598.4
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-03-31",
+   "values": {
+    "brokerage": 71406.76,
+    "crypto": 19498.71,
+    "gold": 25776.21,
+    "current": 10271.26,
+    "savings": 15481.89,
+    "pension": 46101.67,
+    "apartment": 356000,
+    "mortgage": 251075.04,
+    "car": 17374.56
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-04-30",
+   "values": {
+    "brokerage": 72625.72,
+    "crypto": 19345.78,
+    "gold": 26624.6,
+    "current": 10817.17,
+    "savings": 15821.84,
+    "pension": 46645.22,
+    "apartment": 358000,
+    "mortgage": 250592.06,
+    "car": 17160.66
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-05-31",
+   "values": {
+    "brokerage": 71887.58,
+    "crypto": 18732.91,
+    "gold": 26977.15,
+    "current": 11089.48,
+    "savings": 16241.88,
+    "pension": 46433.95,
+    "apartment": 359000,
+    "mortgage": 250107.83,
+    "car": 16942.38
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-06-30",
+   "values": {
+    "brokerage": 74757.36,
+    "crypto": 23243.1,
+    "gold": 27148.33,
+    "current": 11578.37,
+    "savings": 16556.03,
+    "pension": 47617.35,
+    "apartment": 360000,
+    "mortgage": 249622.35,
+    "car": 16733.8
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-07-31",
+   "values": {
+    "brokerage": 76115.87,
+    "crypto": 19795.92,
+    "gold": 28641.43,
+    "current": 10283.79,
+    "savings": 16923.62,
+    "pension": 48212.58,
+    "apartment": 362000,
+    "mortgage": 249135.61,
+    "car": 16520.96
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-08-31",
+   "values": {
+    "brokerage": 73426.48,
+    "crypto": 24105.37,
+    "gold": 29800.09,
+    "current": 11194.91,
+    "savings": 17147.99,
+    "pension": 47268.44,
+    "apartment": 363000,
+    "mortgage": 248647.62,
+    "car": 16310.82
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-09-30",
+   "values": {
+    "brokerage": 77260.46,
+    "crypto": 19599.32,
+    "gold": 29805.62,
+    "current": 10949.73,
+    "savings": 17640.82,
+    "pension": 48821.7,
+    "apartment": 364000,
+    "mortgage": 248158.37,
+    "car": 16110.01
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-10-31",
+   "values": {
+    "brokerage": 80782.28,
+    "crypto": 17444.84,
+    "gold": 32528.65,
+    "current": 9866.95,
+    "savings": 17957.09,
+    "pension": 50235.75,
+    "apartment": 366000,
+    "mortgage": 247667.85,
+    "car": 15905.1
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-11-30",
+   "values": {
+    "brokerage": 85272.4,
+    "crypto": 19486.64,
+    "gold": 31702.26,
+    "current": 11502.36,
+    "savings": 18105.77,
+    "pension": 51995.3,
+    "apartment": 367000,
+    "mortgage": 247176.06,
+    "car": 15709.29
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-12-31",
+   "values": {
+    "brokerage": 94065.26,
+    "crypto": 23317.53,
+    "gold": 32857.43,
+    "current": 12010.59,
+    "savings": 18592.14,
+    "pension": 54388.29,
+    "apartment": 368000,
+    "mortgage": 246683.01,
+    "car": 15509.48
+   },
+   "contributions": 3400.0
+  },
+  {
+   "date": "2026-01-31",
+   "values": {
+    "brokerage": 97059.65,
+    "crypto": 26895.38,
+    "gold": 32891.23,
+    "current": 11992.46,
+    "savings": 18919.48,
+    "pension": 55534.87,
+    "apartment": 370000,
+    "mortgage": 246188.68,
+    "car": 15312.21
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-02-28",
+   "values": {
+    "brokerage": 99224.57,
+    "crypto": 28811.29,
+    "gold": 33317.86,
+    "current": 12639.13,
+    "savings": 19070.79,
+    "pension": 56389.12,
+    "apartment": 371000,
+    "mortgage": 245693.07,
+    "car": 15136.19
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-03-31",
+   "values": {
+    "brokerage": 96069.42,
+    "crypto": 29928.51,
+    "gold": 34322.4,
+    "current": 12641.22,
+    "savings": 19365.93,
+    "pension": 55426.4,
+    "apartment": 372000,
+    "mortgage": 245196.19,
+    "car": 14943.67
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-04-30",
+   "values": {
+    "brokerage": 100032.77,
+    "crypto": 31137.54,
+    "gold": 34860.12,
+    "current": 13237.72,
+    "savings": 19621.78,
+    "pension": 56906.83,
+    "apartment": 374000,
+    "mortgage": 244698.02,
+    "car": 14759.69
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-05-31",
+   "values": {
+    "brokerage": 99457.61,
+    "crypto": 34501.79,
+    "gold": 35841.75,
+    "current": 13170.75,
+    "savings": 19759.86,
+    "pension": 56823.31,
+    "apartment": 375000,
+    "mortgage": 244198.56,
+    "car": 14571.96
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-06-30",
+   "values": {
+    "brokerage": 99492.06,
+    "crypto": 34081.15,
+    "gold": 34522.07,
+    "current": 12997.41,
+    "savings": 20126.86,
+    "pension": 56946.6,
+    "apartment": 376000,
+    "mortgage": 243697.81,
+    "car": 14392.55
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-07-31",
+   "values": {
+    "brokerage": 96455.96,
+    "crypto": 36139.31,
+    "gold": 33269.42,
+    "current": 13123.55,
+    "savings": 20284.49,
+    "pension": 56014.85,
+    "apartment": 378000,
+    "mortgage": 243195.77,
+    "car": 14209.49
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-08-31",
+   "values": {
+    "brokerage": 94629.21,
+    "crypto": 40029.21,
+    "gold": 34182.61,
+    "current": 12636.5,
+    "savings": 20864.49,
+    "pension": 55484.75,
+    "apartment": 379000,
+    "mortgage": 242692.43,
+    "car": 14028.76
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-09-30",
+   "values": {
+    "brokerage": 94423.7,
+    "crypto": 40675.05,
+    "gold": 33502.6,
+    "current": 13437.44,
+    "savings": 21200.98,
+    "pension": 55515.83,
+    "apartment": 381000,
+    "mortgage": 242187.8,
+    "car": 13856.04
+   },
+   "contributions": 900.0,
+   "carried": [
+    "pension"
+   ]
+  }
+ ],
+ "budget": {
+  "months": [
+   {
+    "month": "2025-08",
+    "income": {
+     "Salary": 4650,
+     "Side income": 170
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 435,
+     "Transport": 236,
+     "Utilities": 186,
+     "Eating out": 149,
+     "Subscriptions": 64,
+     "Shopping": 229,
+     "Health": 148,
+     "Travel": 1555
+    }
+   },
+   {
+    "month": "2025-09",
+    "income": {
+     "Salary": 4650,
+     "Side income": 131
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 549,
+     "Transport": 213,
+     "Utilities": 212,
+     "Eating out": 140,
+     "Subscriptions": 64,
+     "Shopping": 109,
+     "Health": 116
+    }
+   },
+   {
+    "month": "2025-10",
+    "income": {
+     "Salary": 4650,
+     "Side income": 399
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 512,
+     "Transport": 238,
+     "Utilities": 175,
+     "Eating out": 308,
+     "Subscriptions": 64,
+     "Shopping": 112,
+     "Health": 141
+    }
+   },
+   {
+    "month": "2025-11",
+    "income": {
+     "Salary": 4650,
+     "Side income": 268
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 550,
+     "Transport": 179,
+     "Utilities": 178,
+     "Eating out": 236,
+     "Subscriptions": 64,
+     "Shopping": 169,
+     "Health": 35,
+     "Travel": 165
+    }
+   },
+   {
+    "month": "2025-12",
+    "income": {
+     "Salary": 4650,
+     "Bonus": 2900,
+     "Side income": 186
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 470,
+     "Transport": 234,
+     "Utilities": 187,
+     "Eating out": 230,
+     "Subscriptions": 64,
+     "Shopping": 149,
+     "Health": 69,
+     "Travel": 225,
+     "Gifts": 254
+    }
+   },
+   {
+    "month": "2026-01",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 502,
+     "Transport": 171,
+     "Utilities": 198,
+     "Eating out": 326,
+     "Subscriptions": 64,
+     "Shopping": 125,
+     "Health": 135
+    }
+   },
+   {
+    "month": "2026-02",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 538,
+     "Transport": 193,
+     "Utilities": 200,
+     "Eating out": 271,
+     "Subscriptions": 64,
+     "Shopping": 414,
+     "Health": 68
+    }
+   },
+   {
+    "month": "2026-03",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 513,
+     "Transport": 195,
+     "Utilities": 191,
+     "Eating out": 132,
+     "Subscriptions": 64,
+     "Shopping": 133,
+     "Health": 30
+    }
+   },
+   {
+    "month": "2026-04",
+    "income": {
+     "Salary": 4890,
+     "Side income": 136
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 441,
+     "Transport": 243,
+     "Utilities": 222,
+     "Eating out": 268,
+     "Subscriptions": 64,
+     "Shopping": 183,
+     "Health": 54
+    }
+   },
+   {
+    "month": "2026-05",
+    "income": {
+     "Salary": 4890,
+     "Holiday allowance": 4694
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 450,
+     "Transport": 199,
+     "Utilities": 186,
+     "Eating out": 332,
+     "Subscriptions": 64,
+     "Shopping": 411,
+     "Health": 97,
+     "Travel": 440
+    }
+   },
+   {
+    "month": "2026-06",
+    "income": {
+     "Salary": 4890,
+     "Side income": 201
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 430,
+     "Transport": 192,
+     "Utilities": 198,
+     "Eating out": 231,
+     "Subscriptions": 64,
+     "Shopping": 156,
+     "Health": 91,
+     "Travel": 229
+    }
+   },
+   {
+    "month": "2026-07",
+    "income": {
+     "Salary": 4890,
+     "Side income": 216
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 435,
+     "Transport": 152,
+     "Utilities": 188,
+     "Eating out": 171,
+     "Subscriptions": 64,
+     "Shopping": 283,
+     "Health": 94,
+     "Travel": 1500
+    }
+   },
+   {
+    "month": "2026-08",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 523,
+     "Transport": 247,
+     "Utilities": 193,
+     "Eating out": 192,
+     "Subscriptions": 64,
+     "Shopping": 415,
+     "Health": 41,
+     "Travel": 1479
+    }
+   },
+   {
+    "month": "2026-09",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 436,
+     "Transport": 242,
+     "Utilities": 224,
+     "Eating out": 258,
+     "Subscriptions": 64,
+     "Shopping": 332,
+     "Health": 134,
+     "Travel": 307
+    }
+   }
+  ]
+ }
+}

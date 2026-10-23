@@ -1,0 +1,2587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex, nofollow">
+<title>Wealth dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a one-column personal statement. Header line with the as-of date, one filter row,
+   the net worth figure with four tiles, the history chart full width, then allocation and
+   accounts side by side on wide screens, holdings and budget full width below. */
+:root {
+  --plane: #f3f4f1;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #66655f;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --line: rgba(11, 11, 11, 0.10);
+  --wash: rgba(11, 11, 11, 0.045);
+  --pos: #006300;
+  --neg: #c4302f;
+  --chip-bg: #fbf0d3;
+  --chip-ink: #6b4a00;
+  --focus: #2a78d6;
+  --on-ink: #fcfcfb;
+  --s-invested: #2a78d6;
+  --s-cash: #eb6834;
+  --s-retirement: #1baf7a;
+  --s-property: #eda100;
+  --s-other: #e87ba4;
+  --s-debt: #898781;
+  --bar: #2a78d6;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plane: #0e0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a9a89f;
+    --muted: #898781; --grid: #2c2c2a; --axis: #383835; --line: rgba(255, 255, 255, 0.10);
+    --wash: rgba(255, 255, 255, 0.05); --pos: #2fb344; --neg: #f07c7c; --chip-bg: #3a2c0b;
+    --chip-ink: #f5c860; --focus: #3987e5; --on-ink: #1a1a19; --s-invested: #3987e5;
+    --s-cash: #d95926; --s-retirement: #199e70; --s-property: #c98500; --s-other: #d55181;
+    --s-debt: #898781; --bar: #3987e5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plane: #0e0f0e; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a9a89f;
+  --muted: #898781; --grid: #2c2c2a; --axis: #383835; --line: rgba(255, 255, 255, 0.10);
+  --wash: rgba(255, 255, 255, 0.05); --pos: #2fb344; --neg: #f07c7c; --chip-bg: #3a2c0b;
+  --chip-ink: #f5c860; --focus: #3987e5; --on-ink: #1a1a19; --s-invested: #3987e5;
+  --s-cash: #d95926; --s-retirement: #199e70; --s-property: #c98500; --s-other: #d55181;
+  --s-debt: #898781; --bar: #3987e5; color-scheme: dark;
+}
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--plane); color: var(--ink); font: 15px/1.5 var(--font); }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.app {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.005em; text-wrap: balance; }
+.meta { margin: 2px 0 0; color: var(--ink-3); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.meta span + span::before { content: "·"; margin-right: 10px; color: var(--muted); }
+.ghost {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; color: var(--ink-2);
+}
+.ghost:hover { background: var(--wash); }
+.ghost svg { width: 16px; height: 16px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.filters .lbl { font-size: 12px; color: var(--ink-3); margin-right: 6px; letter-spacing: 0.02em; }
+.fgroup { display: flex; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 2px; gap: 2px; }
+.seg button {
+  border: 0; background: transparent; border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer;
+  color: var(--ink-2); font-weight: 500; min-height: 28px;
+}
+.seg button:hover { background: var(--wash); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.note-line { font-size: 12px; color: var(--ink-3); margin: 0; }
+.banner { font-size: 13px; color: var(--chip-ink); background: var(--chip-bg); border-radius: 8px; padding: 8px 12px; margin: 0; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr); gap: 16px 28px; align-items: end; }
+.hero-main { min-width: 0; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 500; margin: 0; }
+.hero-value { font-size: clamp(40px, 8vw, 60px); line-height: 1.05; font-weight: 600; letter-spacing: -0.025em; margin: 6px 0 8px; overflow-wrap: anywhere; }
+.delta { font-size: 14px; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; }
+.delta .amt { font-weight: 600; }
+.up { color: var(--pos); }
+.down { color: var(--neg); }
+.flat { color: var(--ink-2); }
+.split { font-size: 13px; color: var(--ink-3); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.split b { font-weight: 500; color: var(--ink-2); }
+.goal { margin-top: 12px; max-width: 420px; }
+.meter { height: 6px; border-radius: 3px; background: var(--wash); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+.goal p { margin: 6px 0 0; font-size: 12px; color: var(--ink-3); }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; }
+.tile { border-top: 1px solid var(--axis); padding-top: 10px; min-width: 0; }
+.tile .k { font-size: 12px; color: var(--ink-3); }
+.tile .v { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 2px 0; overflow-wrap: anywhere; }
+.tile .s { font-size: 12px; color: var(--ink-3); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px 18px; min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.panel h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.panel .sub { margin: 2px 0 0; font-size: 12px; color: var(--ink-3); }
+.head-ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+.lk { width: 14px; height: 2px; border-radius: 1px; display: inline-block; flex: none; }
+.chart { position: relative; touch-action: pan-y; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart:focus-visible { outline-offset: 4px; border-radius: 4px; }
+.empty-note { font-size: 13px; color: var(--ink-3); margin: 8px 0 0; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
+
+.stackbar { display: flex; gap: 2px; height: 12px; margin: 4px 0 14px; }
+.stackbar i { display: block; height: 100%; min-width: 2px; }
+.stackbar i:first-child { border-radius: 4px 0 0 4px; }
+.stackbar i:last-child { border-radius: 0 4px 4px 0; }
+.stackbar i:only-child { border-radius: 4px; }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 52px; gap: 4px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--grid); font-size: 14px; }
+.row:last-child { border-bottom: 0; }
+.row .name { min-width: 0; overflow-wrap: anywhere; }
+.row .val, .row .pc { text-align: right; font-variant-numeric: tabular-nums; }
+.row .pc { color: var(--ink-3); font-size: 13px; }
+.row .track { grid-column: 2 / -1; height: 4px; border-radius: 2px; background: var(--wash); }
+.row .track i { display: block; height: 100%; border-radius: 2px; }
+.foot-note { font-size: 12px; color: var(--ink-3); margin: 10px 0 0; }
+
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); padding: 6px 8px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th:first-child, td:first-child { padding-left: 0; }
+th:last-child, td:last-child { padding-right: 0; }
+.num { text-align: right; white-space: nowrap; }
+th.num { text-align: right; }
+tr.grp td { padding-top: 14px; font-weight: 600; border-bottom-color: var(--axis); }
+tr.grp .gl { display: inline-flex; align-items: center; gap: 8px; }
+td .nm { font-weight: 500; }
+td .in { display: block; font-size: 12px; color: var(--ink-3); }
+.chip { display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 6px; border-radius: 999px; background: var(--chip-bg); color: var(--chip-ink); margin-left: 6px; font-weight: 500; white-space: nowrap; vertical-align: 1px; }
+.sortbtn { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.sortbtn .ar { opacity: 0; font-size: 10px; }
+th[aria-sort] .sortbtn .ar { opacity: 1; }
+.minis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.mini .k { font-size: 12px; color: var(--ink-3); }
+.mini .v { font-size: 18px; font-weight: 600; }
+.cats { margin-top: 14px; }
+.cats h3 { font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+.cat { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px 12px; padding: 6px 0; border-bottom: 1px solid var(--grid); font-size: 14px; align-items: center; }
+.cat:last-child { border-bottom: 0; }
+.cat .track { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--wash); }
+.cat .track i { display: block; height: 100%; background: var(--bar); border-radius: 2px; }
+.cat .vs { font-size: 12px; min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; }
+.cat .val { text-align: right; font-variant-numeric: tabular-nums; }
+
+.tip {
+  position: fixed; z-index: 20; pointer-events: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; min-width: 150px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14); font-variant-numeric: tabular-nums;
+}
+.tip .td { font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+.tip .tr { display: grid; grid-template-columns: 14px auto 1fr; gap: 8px; align-items: center; padding: 1px 0; }
+.tip .tr b { font-weight: 600; font-size: 13px; }
+.tip .tr span:last-child { color: var(--ink-3); }
+footer { font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 4px; }
+footer a { color: var(--ink-2); }
+.hidden-amt { letter-spacing: 0.1em; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+  .minis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hide-sm { display: none; }
+  .panel { padding: 14px 14px 16px; }
+  table { font-size: 13px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .seg button, .ghost { transition: background-color 120ms ease, color 120ms ease; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div>
+      <h1 id="title">Wealth dashboard</h1>
+      <p class="meta" id="meta"></p>
+    </div>
+    <button type="button" class="ghost" id="hide-btn" aria-pressed="false"></button>
+  </header>
+  <p class="banner" id="banner" hidden></p>
+  <div id="main"></div>
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status" aria-live="polite" hidden></div>
+<script type="application/json" id="wealth-data">{
+ "schema": "wealth-dashboard/1",
+ "settings": {
+  "title": "Wealth dashboard",
+  "owner": "Alex (demo)",
+  "currency": "EUR",
+  "language": "en",
+  "locale": "en-GB",
+  "checkin_day": 20,
+  "created": "2026-10-23",
+  "updated": "2026-10-23",
+  "goal": {
+   "net_worth": 500000,
+   "by": "2030-12-31"
+  },
+  "inflation": {
+   "annual_rate": 0.025
+  },
+  "demo": true
+ },
+ "accounts": [
+  {
+   "id": "brokerage",
+   "name": "Brokerage",
+   "group": "invested",
+   "method": "holdings",
+   "institution": "Lumen Broker",
+   "source": "prices via web search",
+   "class": "equity",
+   "cash": 0.0
+  },
+  {
+   "id": "crypto",
+   "name": "Bitcoin wallet",
+   "group": "invested",
+   "method": "holdings",
+   "class": "crypto",
+   "source": "on-chain balance + BTC/EUR price"
+  },
+  {
+   "id": "gold",
+   "name": "Gold coins",
+   "group": "invested",
+   "method": "holdings",
+   "class": "gold",
+   "source": "dealer buyback price"
+  },
+  {
+   "id": "current",
+   "name": "Current account",
+   "group": "cash",
+   "method": "statement",
+   "institution": "Northbank",
+   "class": "cash",
+   "source": "monthly export"
+  },
+  {
+   "id": "savings",
+   "name": "Savings account",
+   "group": "cash",
+   "method": "ask",
+   "institution": "Northbank",
+   "class": "cash"
+  },
+  {
+   "id": "pension",
+   "name": "Workplace pension",
+   "group": "retirement",
+   "method": "ask",
+   "institution": "Harbor Pensions",
+   "class": "pension",
+   "source": "pension portal, quarterly"
+  },
+  {
+   "id": "apartment",
+   "name": "Apartment",
+   "group": "property",
+   "method": "ask",
+   "class": "property",
+   "source": "yearly estimate from the land registry index"
+  },
+  {
+   "id": "car",
+   "name": "Car",
+   "group": "other",
+   "method": "formula",
+   "class": "vehicle",
+   "formula": {
+    "type": "depreciation",
+    "purchase_price": 27500,
+    "purchase_date": "2022-03-15",
+    "annual_rate": 0.14
+   }
+  },
+  {
+   "id": "mortgage",
+   "name": "Mortgage",
+   "group": "debt",
+   "method": "formula",
+   "institution": "Northbank",
+   "formula": {
+    "type": "annuity",
+    "principal": 265000,
+    "annual_rate": 0.031,
+    "years": 30,
+    "start": "2022-09-01"
+   }
+  }
+ ],
+ "holdings": [
+  {
+   "id": "vwce",
+   "account": "brokerage",
+   "name": "FTSE All-World ETF",
+   "ticker": "VWCE",
+   "isin": "IE00BK5BQT80",
+   "class": "equity",
+   "quantity": 366.7069,
+   "price": 141.62,
+   "currency": "EUR",
+   "cost": 37632.63,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "cspx",
+   "account": "brokerage",
+   "name": "S\u0026P 500 ETF",
+   "ticker": "CSPX",
+   "isin": "IE00B5BMR087",
+   "class": "equity",
+   "quantity": 31.8559,
+   "price": 652.1,
+   "currency": "EUR",
+   "cost": 13666.6,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "msft",
+   "account": "brokerage",
+   "name": "Microsoft",
+   "ticker": "MSFT",
+   "isin": "US5949181045",
+   "class": "equity",
+   "quantity": 17.1421,
+   "price": 512.4,
+   "currency": "USD",
+   "fx": 0.86,
+   "cost": 4691.87,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "asml",
+   "account": "brokerage",
+   "name": "ASML Holding",
+   "ticker": "ASML",
+   "isin": "NL0010273215",
+   "class": "equity",
+   "quantity": 8.8744,
+   "price": 744.8,
+   "currency": "EUR",
+   "cost": 7031.55,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "govt",
+   "account": "brokerage",
+   "name": "Euro Govt Bond ETF",
+   "ticker": "IBGS",
+   "isin": "IE00B14X4Q57",
+   "class": "bonds",
+   "quantity": 51.1955,
+   "price": 147.55,
+   "currency": "EUR",
+   "cost": 7787.52,
+   "price_date": "2026-09-30"
+  },
+  {
+   "id": "btc",
+   "account": "crypto",
+   "name": "Bitcoin",
+   "ticker": "BTC",
+   "class": "crypto",
+   "quantity": 0.31,
+   "unit": "BTC",
+   "price": 131209.84,
+   "cost": 13950.0,
+   "price_date": "2026-09-30",
+   "address": "bc1q-demo-address-not-real"
+  },
+  {
+   "id": "gold-coins",
+   "account": "gold",
+   "name": "Gold coins (1 oz)",
+   "ticker": "XAU",
+   "class": "gold",
+   "quantity": 10.0,
+   "unit": "oz",
+   "price": 3350.26,
+   "cost": 10350.0,
+   "price_date": "2026-09-30",
+   "price_source": "dealer buyback price"
+  }
+ ],
+ "snapshots": [
+  {
+   "date": "2021-04-30",
+   "values": {
+    "brokerage": 18000.0,
+    "crypto": 19702.09,
+    "gold": 10216.0,
+    "current": 3592.68,
+    "savings": 15479.48,
+    "pension": 21420.0
+   }
+  },
+  {
+   "date": "2021-05-31",
+   "values": {
+    "brokerage": 19152.82,
+    "crypto": 13612.44,
+    "gold": 10481.38,
+    "current": 4475.83,
+    "savings": 16291.46,
+    "pension": 22199.01
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-06-30",
+   "values": {
+    "brokerage": 19801.06,
+    "crypto": 10655.37,
+    "gold": 11207.94,
+    "current": 5493.32,
+    "savings": 16850.8,
+    "pension": 22617.79
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-07-31",
+   "values": {
+    "brokerage": 20382.3,
+    "crypto": 11233.91,
+    "gold": 11418.06,
+    "current": 5553.98,
+    "savings": 17379.76,
+    "pension": 22990.67
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-08-31",
+   "values": {
+    "brokerage": 20485.23,
+    "crypto": 14007.97,
+    "gold": 11374.36,
+    "current": 6111.9,
+    "savings": 18318.17,
+    "pension": 23040.42
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-09-30",
+   "values": {
+    "brokerage": 21143.31,
+    "crypto": 15528.67,
+    "gold": 11349.6,
+    "current": 5593.26,
+    "savings": 19252.22,
+    "pension": 23465.87
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-10-31",
+   "values": {
+    "brokerage": 22866.39,
+    "crypto": 11056.55,
+    "gold": 11447.29,
+    "current": 6295.48,
+    "savings": 19925.54,
+    "pension": 24600.45
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-11-30",
+   "values": {
+    "brokerage": 24079.31,
+    "crypto": 6778.58,
+    "gold": 11867.56,
+    "current": 5073.7,
+    "savings": 20836.54,
+    "pension": 25383.81
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2021-12-31",
+   "values": {
+    "brokerage": 28382.74,
+    "crypto": 7274.66,
+    "gold": 11854.54,
+    "current": 5071.13,
+    "savings": 21446.11,
+    "pension": 26533.36
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2022-01-31",
+   "values": {
+    "brokerage": 29542.45,
+    "crypto": 6534.08,
+    "gold": 12098.44,
+    "current": 5390.86,
+    "savings": 22207.61,
+    "pension": 27239.26
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-02-28",
+   "values": {
+    "brokerage": 30886.73,
+    "crypto": 5467.94,
+    "gold": 12874.18,
+    "current": 6424.63,
+    "savings": 22754.59,
+    "pension": 28043.35
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-03-31",
+   "values": {
+    "brokerage": 32016.79,
+    "crypto": 6410.51,
+    "gold": 11999.51,
+    "current": 7223.18,
+    "savings": 23677.69,
+    "pension": 28724.87,
+    "car": 27318.91
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-04-30",
+   "values": {
+    "brokerage": 30911.93,
+    "crypto": 7643.16,
+    "gold": 11702.91,
+    "current": 8227.13,
+    "savings": 24350.6,
+    "pension": 28200.21,
+    "car": 26982.57
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-05-31",
+   "values": {
+    "brokerage": 32829.31,
+    "crypto": 7957.75,
+    "gold": 11893.87,
+    "current": 7803.52,
+    "savings": 25203.38,
+    "pension": 29313.93,
+    "car": 26639.37
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-06-30",
+   "values": {
+    "brokerage": 34390.08,
+    "crypto": 8398.01,
+    "gold": 12143.04,
+    "current": 7938.39,
+    "savings": 25922.01,
+    "pension": 30221.88,
+    "car": 26311.4
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-07-31",
+   "values": {
+    "brokerage": 35984.26,
+    "crypto": 9116.02,
+    "gold": 12339.24,
+    "current": 8924.13,
+    "savings": 26582.5,
+    "pension": 31139.73,
+    "car": 25976.74
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-08-31",
+   "values": {
+    "brokerage": 34627.35,
+    "crypto": 11586.83,
+    "gold": 12290.69,
+    "current": 7491.25,
+    "savings": 9000.0,
+    "pension": 30517.69,
+    "car": 25646.34
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-09-30",
+   "values": {
+    "brokerage": 33277.01,
+    "crypto": 12919.83,
+    "gold": 12642.88,
+    "current": 7299.58,
+    "savings": 9037.53,
+    "pension": 29879.93,
+    "apartment": 319000,
+    "mortgage": 265000.0,
+    "car": 25330.59
+   },
+   "contributions": 650.0,
+   "note": "Bought the apartment"
+  },
+  {
+   "date": "2022-10-31",
+   "values": {
+    "brokerage": 33084.92,
+    "crypto": 14198.69,
+    "gold": 12863.67,
+    "current": 7891.79,
+    "savings": 9335.57,
+    "pension": 29846.26,
+    "apartment": 320000,
+    "mortgage": 264552.99,
+    "car": 25008.41
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-11-30",
+   "values": {
+    "brokerage": 33427.52,
+    "crypto": 15670.21,
+    "gold": 12777.98,
+    "current": 7554.5,
+    "savings": 9594.42,
+    "pension": 30099.87,
+    "apartment": 321000,
+    "mortgage": 264104.82,
+    "car": 24700.51
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2022-12-31",
+   "values": {
+    "brokerage": 37249.65,
+    "crypto": 11988.81,
+    "gold": 13824.51,
+    "current": 8155.71,
+    "savings": 9863.89,
+    "pension": 30883.0,
+    "apartment": 323000,
+    "mortgage": 263655.5,
+    "car": 24386.34
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2023-01-31",
+   "values": {
+    "brokerage": 38151.28,
+    "crypto": 14639.27,
+    "gold": 14096.22,
+    "current": 9077.95,
+    "savings": 10116.54,
+    "pension": 31428.18,
+    "apartment": 324000,
+    "mortgage": 263205.02,
+    "car": 24076.17
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-02-28",
+   "values": {
+    "brokerage": 39880.85,
+    "crypto": 17110.62,
+    "gold": 23314.52,
+    "current": 9814.17,
+    "savings": 10555.52,
+    "pension": 32381.77,
+    "apartment": 325000,
+    "mortgage": 262753.37,
+    "car": 23799.4
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-03-31",
+   "values": {
+    "brokerage": 39896.55,
+    "crypto": 18834.34,
+    "gold": 23454.79,
+    "current": 10920.6,
+    "savings": 10734.9,
+    "pension": 32492.75,
+    "apartment": 326000,
+    "mortgage": 262300.56,
+    "car": 23496.69
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-04-30",
+   "values": {
+    "brokerage": 41353.69,
+    "crypto": 13187.43,
+    "gold": 23507.15,
+    "current": 11552.53,
+    "savings": 10769.78,
+    "pension": 33307.17,
+    "apartment": 327000,
+    "mortgage": 261846.57,
+    "car": 23207.41
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-05-31",
+   "values": {
+    "brokerage": 42974.58,
+    "crypto": 12061.37,
+    "gold": 23674.46,
+    "current": 10908.36,
+    "savings": 10794.25,
+    "pension": 34196.35,
+    "apartment": 329000,
+    "mortgage": 261391.42,
+    "car": 22912.23
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-06-30",
+   "values": {
+    "brokerage": 42910.21,
+    "crypto": 13879.84,
+    "gold": 21949.96,
+    "current": 11663.2,
+    "savings": 10906.41,
+    "pension": 34275.28,
+    "apartment": 330000,
+    "mortgage": 260935.09,
+    "car": 22630.14
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-07-31",
+   "values": {
+    "brokerage": 46725.53,
+    "crypto": 10079.62,
+    "gold": 21826.88,
+    "current": 11714.9,
+    "savings": 11143.35,
+    "pension": 36212.3,
+    "apartment": 331000,
+    "mortgage": 260477.57,
+    "car": 22342.3
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-08-31",
+   "values": {
+    "brokerage": 48760.99,
+    "crypto": 9944.11,
+    "gold": 22683.74,
+    "current": 11756.31,
+    "savings": 11332.37,
+    "pension": 37276.54,
+    "apartment": 332000,
+    "mortgage": 260018.88,
+    "car": 22058.13
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-09-30",
+   "values": {
+    "brokerage": 52043.41,
+    "crypto": 11725.35,
+    "gold": 22092.68,
+    "current": 11968.19,
+    "savings": 11807.32,
+    "pension": 38903.99,
+    "apartment": 333000,
+    "mortgage": 259559.0,
+    "car": 21786.56
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-10-31",
+   "values": {
+    "brokerage": 51908.98,
+    "crypto": 9453.09,
+    "gold": 22247.3,
+    "current": 12056.97,
+    "savings": 12131.04,
+    "pension": 38972.16,
+    "apartment": 335000,
+    "mortgage": 259097.94,
+    "car": 21509.45
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-11-30",
+   "values": {
+    "brokerage": 51541.48,
+    "crypto": 12039.62,
+    "gold": 23083.92,
+    "current": 12767.31,
+    "savings": 12367.28,
+    "pension": 38933.81,
+    "apartment": 336000,
+    "mortgage": 258635.68,
+    "car": 21244.64
+   },
+   "contributions": 650.0
+  },
+  {
+   "date": "2023-12-31",
+   "values": {
+    "brokerage": 54455.74,
+    "crypto": 13295.52,
+    "gold": 23884.59,
+    "current": 12008.51,
+    "savings": 12560.63,
+    "pension": 39246.96,
+    "apartment": 337000,
+    "mortgage": 258172.23,
+    "car": 20974.42
+   },
+   "contributions": 3150.0
+  },
+  {
+   "date": "2024-01-31",
+   "values": {
+    "brokerage": 55598.4,
+    "crypto": 13188.86,
+    "gold": 25167.94,
+    "current": 12766.34,
+    "savings": 12623.09,
+    "pension": 39771.89,
+    "apartment": 338000,
+    "mortgage": 257707.58,
+    "car": 20707.64
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-02-29",
+   "values": {
+    "brokerage": 58306.4,
+    "crypto": 14085.42,
+    "gold": 24109.82,
+    "current": 12437.74,
+    "savings": 13003.98,
+    "pension": 40967.9,
+    "apartment": 340000,
+    "mortgage": 257241.73,
+    "car": 20461.14
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-03-31",
+   "values": {
+    "brokerage": 60252.43,
+    "crypto": 15775.29,
+    "gold": 24071.22,
+    "current": 13013.02,
+    "savings": 13264.89,
+    "pension": 41828.88,
+    "apartment": 341000,
+    "mortgage": 256774.68,
+    "car": 20200.89
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-04-30",
+   "values": {
+    "brokerage": 60640.32,
+    "crypto": 16331.58,
+    "gold": 24041.65,
+    "current": 13596.43,
+    "savings": 13544.81,
+    "pension": 42035.57,
+    "apartment": 342000,
+    "mortgage": 256306.42,
+    "car": 19952.19
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-05-31",
+   "values": {
+    "brokerage": 59850.72,
+    "crypto": 19586.55,
+    "gold": 24707.57,
+    "current": 12890.13,
+    "savings": 13617.13,
+    "pension": 41752.83,
+    "apartment": 343000,
+    "mortgage": 255836.95,
+    "car": 19698.41
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-06-30",
+   "values": {
+    "brokerage": 60075.45,
+    "crypto": 17826.76,
+    "gold": 25739.2,
+    "current": 12534.81,
+    "savings": 13987.86,
+    "pension": 41890.19,
+    "apartment": 345000,
+    "mortgage": 255366.27,
+    "car": 19455.9
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-07-31",
+   "values": {
+    "brokerage": 64273.3,
+    "crypto": 16929.04,
+    "gold": 23899.23,
+    "current": 12227.21,
+    "savings": 14139.58,
+    "pension": 43689.93,
+    "apartment": 346000,
+    "mortgage": 254894.37,
+    "car": 19208.43
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-08-31",
+   "values": {
+    "brokerage": 63746.3,
+    "crypto": 20021.46,
+    "gold": 24894.89,
+    "current": 11786.08,
+    "savings": 14215.77,
+    "pension": 43527.93,
+    "apartment": 347000,
+    "mortgage": 254421.26,
+    "car": 18964.11
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-09-30",
+   "values": {
+    "brokerage": 65781.04,
+    "crypto": 20427.65,
+    "gold": 24037.85,
+    "current": 11769.86,
+    "savings": 14334.21,
+    "pension": 44412.83,
+    "apartment": 349000,
+    "mortgage": 253946.92,
+    "car": 18730.64
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-10-31",
+   "values": {
+    "brokerage": 68306.34,
+    "crypto": 17876.77,
+    "gold": 24746.83,
+    "current": 12066.55,
+    "savings": 14311.0,
+    "pension": 45491.23,
+    "apartment": 350000,
+    "mortgage": 253471.35,
+    "car": 18492.4
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-11-30",
+   "values": {
+    "brokerage": 65920.11,
+    "crypto": 20869.92,
+    "gold": 23861.78,
+    "current": 12339.61,
+    "savings": 14494.01,
+    "pension": 44598.07,
+    "apartment": 351000,
+    "mortgage": 252994.56,
+    "car": 18264.73
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2024-12-31",
+   "values": {
+    "brokerage": 70001.85,
+    "crypto": 26097.41,
+    "gold": 24202.42,
+    "current": 11137.21,
+    "savings": 14840.97,
+    "pension": 45294.81,
+    "apartment": 352000,
+    "mortgage": 252516.54,
+    "car": 18032.41
+   },
+   "contributions": 3400.0
+  },
+  {
+   "date": "2025-01-31",
+   "values": {
+    "brokerage": 74971.57,
+    "crypto": 24657.56,
+    "gold": 25287.65,
+    "current": 11018.13,
+    "savings": 14833.37,
+    "pension": 47294.8,
+    "apartment": 354000,
+    "mortgage": 252037.28,
+    "car": 17803.06
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-02-28",
+   "values": {
+    "brokerage": 70770.07,
+    "crypto": 19607.72,
+    "gold": 25401.96,
+    "current": 10509.34,
+    "savings": 15128.29,
+    "pension": 45783.87,
+    "apartment": 355000,
+    "mortgage": 251556.78,
+    "car": 17598.4
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-03-31",
+   "values": {
+    "brokerage": 71406.76,
+    "crypto": 19498.71,
+    "gold": 25776.21,
+    "current": 10271.26,
+    "savings": 15481.89,
+    "pension": 46101.67,
+    "apartment": 356000,
+    "mortgage": 251075.04,
+    "car": 17374.56
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-04-30",
+   "values": {
+    "brokerage": 72625.72,
+    "crypto": 19345.78,
+    "gold": 26624.6,
+    "current": 10817.17,
+    "savings": 15821.84,
+    "pension": 46645.22,
+    "apartment": 358000,
+    "mortgage": 250592.06,
+    "car": 17160.66
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-05-31",
+   "values": {
+    "brokerage": 71887.58,
+    "crypto": 18732.91,
+    "gold": 26977.15,
+    "current": 11089.48,
+    "savings": 16241.88,
+    "pension": 46433.95,
+    "apartment": 359000,
+    "mortgage": 250107.83,
+    "car": 16942.38
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-06-30",
+   "values": {
+    "brokerage": 74757.36,
+    "crypto": 23243.1,
+    "gold": 27148.33,
+    "current": 11578.37,
+    "savings": 16556.03,
+    "pension": 47617.35,
+    "apartment": 360000,
+    "mortgage": 249622.35,
+    "car": 16733.8
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-07-31",
+   "values": {
+    "brokerage": 76115.87,
+    "crypto": 19795.92,
+    "gold": 28641.43,
+    "current": 10283.79,
+    "savings": 16923.62,
+    "pension": 48212.58,
+    "apartment": 362000,
+    "mortgage": 249135.61,
+    "car": 16520.96
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-08-31",
+   "values": {
+    "brokerage": 73426.48,
+    "crypto": 24105.37,
+    "gold": 29800.09,
+    "current": 11194.91,
+    "savings": 17147.99,
+    "pension": 47268.44,
+    "apartment": 363000,
+    "mortgage": 248647.62,
+    "car": 16310.82
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-09-30",
+   "values": {
+    "brokerage": 77260.46,
+    "crypto": 19599.32,
+    "gold": 29805.62,
+    "current": 10949.73,
+    "savings": 17640.82,
+    "pension": 48821.7,
+    "apartment": 364000,
+    "mortgage": 248158.37,
+    "car": 16110.01
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-10-31",
+   "values": {
+    "brokerage": 80782.28,
+    "crypto": 17444.84,
+    "gold": 32528.65,
+    "current": 9866.95,
+    "savings": 17957.09,
+    "pension": 50235.75,
+    "apartment": 366000,
+    "mortgage": 247667.85,
+    "car": 15905.1
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-11-30",
+   "values": {
+    "brokerage": 85272.4,
+    "crypto": 19486.64,
+    "gold": 31702.26,
+    "current": 11502.36,
+    "savings": 18105.77,
+    "pension": 51995.3,
+    "apartment": 367000,
+    "mortgage": 247176.06,
+    "car": 15709.29
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2025-12-31",
+   "values": {
+    "brokerage": 94065.26,
+    "crypto": 23317.53,
+    "gold": 32857.43,
+    "current": 12010.59,
+    "savings": 18592.14,
+    "pension": 54388.29,
+    "apartment": 368000,
+    "mortgage": 246683.01,
+    "car": 15509.48
+   },
+   "contributions": 3400.0
+  },
+  {
+   "date": "2026-01-31",
+   "values": {
+    "brokerage": 97059.65,
+    "crypto": 26895.38,
+    "gold": 32891.23,
+    "current": 11992.46,
+    "savings": 18919.48,
+    "pension": 55534.87,
+    "apartment": 370000,
+    "mortgage": 246188.68,
+    "car": 15312.21
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-02-28",
+   "values": {
+    "brokerage": 99224.57,
+    "crypto": 28811.29,
+    "gold": 33317.86,
+    "current": 12639.13,
+    "savings": 19070.79,
+    "pension": 56389.12,
+    "apartment": 371000,
+    "mortgage": 245693.07,
+    "car": 15136.19
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-03-31",
+   "values": {
+    "brokerage": 96069.42,
+    "crypto": 29928.51,
+    "gold": 34322.4,
+    "current": 12641.22,
+    "savings": 19365.93,
+    "pension": 55426.4,
+    "apartment": 372000,
+    "mortgage": 245196.19,
+    "car": 14943.67
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-04-30",
+   "values": {
+    "brokerage": 100032.77,
+    "crypto": 31137.54,
+    "gold": 34860.12,
+    "current": 13237.72,
+    "savings": 19621.78,
+    "pension": 56906.83,
+    "apartment": 374000,
+    "mortgage": 244698.02,
+    "car": 14759.69
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-05-31",
+   "values": {
+    "brokerage": 99457.61,
+    "crypto": 34501.79,
+    "gold": 35841.75,
+    "current": 13170.75,
+    "savings": 19759.86,
+    "pension": 56823.31,
+    "apartment": 375000,
+    "mortgage": 244198.56,
+    "car": 14571.96
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-06-30",
+   "values": {
+    "brokerage": 99492.06,
+    "crypto": 34081.15,
+    "gold": 34522.07,
+    "current": 12997.41,
+    "savings": 20126.86,
+    "pension": 56946.6,
+    "apartment": 376000,
+    "mortgage": 243697.81,
+    "car": 14392.55
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-07-31",
+   "values": {
+    "brokerage": 96455.96,
+    "crypto": 36139.31,
+    "gold": 33269.42,
+    "current": 13123.55,
+    "savings": 20284.49,
+    "pension": 56014.85,
+    "apartment": 378000,
+    "mortgage": 243195.77,
+    "car": 14209.49
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-08-31",
+   "values": {
+    "brokerage": 94629.21,
+    "crypto": 40029.21,
+    "gold": 34182.61,
+    "current": 12636.5,
+    "savings": 20864.49,
+    "pension": 55484.75,
+    "apartment": 379000,
+    "mortgage": 242692.43,
+    "car": 14028.76
+   },
+   "contributions": 900.0
+  },
+  {
+   "date": "2026-09-30",
+   "values": {
+    "brokerage": 94423.7,
+    "crypto": 40675.05,
+    "gold": 33502.6,
+    "current": 13437.44,
+    "savings": 21200.98,
+    "pension": 55515.83,
+    "apartment": 381000,
+    "mortgage": 242187.8,
+    "car": 13856.04
+   },
+   "contributions": 900.0,
+   "carried": [
+    "pension"
+   ]
+  }
+ ],
+ "budget": {
+  "months": [
+   {
+    "month": "2025-08",
+    "income": {
+     "Salary": 4650,
+     "Side income": 170
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 435,
+     "Transport": 236,
+     "Utilities": 186,
+     "Eating out": 149,
+     "Subscriptions": 64,
+     "Shopping": 229,
+     "Health": 148,
+     "Travel": 1555
+    }
+   },
+   {
+    "month": "2025-09",
+    "income": {
+     "Salary": 4650,
+     "Side income": 131
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 549,
+     "Transport": 213,
+     "Utilities": 212,
+     "Eating out": 140,
+     "Subscriptions": 64,
+     "Shopping": 109,
+     "Health": 116
+    }
+   },
+   {
+    "month": "2025-10",
+    "income": {
+     "Salary": 4650,
+     "Side income": 399
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 512,
+     "Transport": 238,
+     "Utilities": 175,
+     "Eating out": 308,
+     "Subscriptions": 64,
+     "Shopping": 112,
+     "Health": 141
+    }
+   },
+   {
+    "month": "2025-11",
+    "income": {
+     "Salary": 4650,
+     "Side income": 268
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 550,
+     "Transport": 179,
+     "Utilities": 178,
+     "Eating out": 236,
+     "Subscriptions": 64,
+     "Shopping": 169,
+     "Health": 35,
+     "Travel": 165
+    }
+   },
+   {
+    "month": "2025-12",
+    "income": {
+     "Salary": 4650,
+     "Bonus": 2900,
+     "Side income": 186
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 470,
+     "Transport": 234,
+     "Utilities": 187,
+     "Eating out": 230,
+     "Subscriptions": 64,
+     "Shopping": 149,
+     "Health": 69,
+     "Travel": 225,
+     "Gifts": 254
+    }
+   },
+   {
+    "month": "2026-01",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 502,
+     "Transport": 171,
+     "Utilities": 198,
+     "Eating out": 326,
+     "Subscriptions": 64,
+     "Shopping": 125,
+     "Health": 135
+    }
+   },
+   {
+    "month": "2026-02",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 538,
+     "Transport": 193,
+     "Utilities": 200,
+     "Eating out": 271,
+     "Subscriptions": 64,
+     "Shopping": 414,
+     "Health": 68
+    }
+   },
+   {
+    "month": "2026-03",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 513,
+     "Transport": 195,
+     "Utilities": 191,
+     "Eating out": 132,
+     "Subscriptions": 64,
+     "Shopping": 133,
+     "Health": 30
+    }
+   },
+   {
+    "month": "2026-04",
+    "income": {
+     "Salary": 4890,
+     "Side income": 136
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 441,
+     "Transport": 243,
+     "Utilities": 222,
+     "Eating out": 268,
+     "Subscriptions": 64,
+     "Shopping": 183,
+     "Health": 54
+    }
+   },
+   {
+    "month": "2026-05",
+    "income": {
+     "Salary": 4890,
+     "Holiday allowance": 4694
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 450,
+     "Transport": 199,
+     "Utilities": 186,
+     "Eating out": 332,
+     "Subscriptions": 64,
+     "Shopping": 411,
+     "Health": 97,
+     "Travel": 440
+    }
+   },
+   {
+    "month": "2026-06",
+    "income": {
+     "Salary": 4890,
+     "Side income": 201
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 430,
+     "Transport": 192,
+     "Utilities": 198,
+     "Eating out": 231,
+     "Subscriptions": 64,
+     "Shopping": 156,
+     "Health": 91,
+     "Travel": 229
+    }
+   },
+   {
+    "month": "2026-07",
+    "income": {
+     "Salary": 4890,
+     "Side income": 216
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 435,
+     "Transport": 152,
+     "Utilities": 188,
+     "Eating out": 171,
+     "Subscriptions": 64,
+     "Shopping": 283,
+     "Health": 94,
+     "Travel": 1500
+    }
+   },
+   {
+    "month": "2026-08",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 523,
+     "Transport": 247,
+     "Utilities": 193,
+     "Eating out": 192,
+     "Subscriptions": 64,
+     "Shopping": 415,
+     "Health": 41,
+     "Travel": 1479
+    }
+   },
+   {
+    "month": "2026-09",
+    "income": {
+     "Salary": 4890
+    },
+    "expenses": {
+     "Housing": 1295,
+     "Groceries": 436,
+     "Transport": 242,
+     "Utilities": 224,
+     "Eating out": 258,
+     "Subscriptions": 64,
+     "Shopping": 332,
+     "Health": 134,
+     "Travel": 307
+    }
+   }
+  ]
+ }
+}</script>
+<script>
+(function () {
+  'use strict';
+
+  // ------------------------------------------------------------------ data
+  var RAW;
+  try { RAW = JSON.parse(document.getElementById('wealth-data').textContent || '{}'); } catch (e) { RAW = {}; }
+  var S = RAW.settings || {};
+  var CUR = (S.currency || 'EUR').toUpperCase();
+  var LOCALE = S.locale || undefined;
+  var LANG = String(S.language || 'en').slice(0, 2);
+  var GROUPS = ['invested', 'cash', 'retirement', 'property', 'other'];
+  var ALLG = GROUPS.concat(['debt']);
+  var DAY = 864e5;
+
+  var STR = {
+    en: {
+      netWorth: 'Net worth', asOf: 'as of {date}', hide: 'Hide amounts', show: 'Show amounts',
+      p1m: '1M', pytd: 'YTD', p1y: '1Y', p5y: '5Y', pall: 'All', period: 'Period', basis: 'Values',
+      nominal: 'Nominal', real: 'Real', realNote: 'Adjusted for inflation, in {date} money',
+      since: 'since {date}', invGains: 'Investment gains', savingOther: 'Saving & other',
+      totalAssets: 'Total assets', debts: 'Debts', investments: 'Investments', cash: 'Cash',
+      savingsRate: 'Savings rate', contributions: 'Contributions', perMonth: '{v} per month',
+      marketGain: '{v} market gain', returnApprox: '{p} return', avgOver: 'average, last {n} months',
+      goal: '{p} of the {v} goal for {date}', chartTitle: 'Net worth over time', total: 'Total', byGroup: 'By group',
+      showTable: 'Table', showChart: 'Chart', oneSnapshot: 'The trend line appears after your second monthly update.',
+      allocation: 'Allocation', tabGroups: 'Groups', tabAccounts: 'Accounts', tabClasses: 'Asset classes',
+      assetsOnly: 'Share of total assets. Debts of {v} are not included.', accountsTitle: 'Accounts', account: 'Account',
+      value: 'Value', change: 'Change', share: 'Share', estimated: 'estimated',
+      estimatedHint: 'Not updated this month: value carried from an earlier month', newAcc: 'new',
+      holdingsTitle: 'Holdings', holding: 'Holding', quantity: 'Quantity', price: 'Price', cost: 'Cost', gain: 'Gain',
+      ret: 'Return', weight: 'Weight', oldPrice: 'old price', holdingsNote: 'Gain and return since purchase, on cost basis, in {cur}.',
+      budgetTitle: 'Budget', last12: 'Last {n} months', income: 'Income', expenses: 'Expenses', saved: 'Saved',
+      avgRate: 'Average savings rate: {p}', categories: 'Spending in {month}', vsAvg: 'vs avg',
+      tapMonth: 'Select a month in the chart to see its spending.', date: 'Date', note: 'Note', assets: 'Assets',
+      snapshots: '{n} monthly snapshots', disclaimer: 'Estimates for personal tracking. Not financial advice.',
+      madeWith: 'Made with wealth-dashboard', demo: 'Demo: every number on this page is invented.',
+      empty: 'No data yet. In Claude, say “Set up my wealth dashboard” to start.', noDebt: 'No debts',
+      updated: 'updated {date}', changeIn: 'Change in period',
+      g_invested: 'Investments', g_cash: 'Cash', g_retirement: 'Pensions', g_property: 'Property', g_other: 'Other assets', g_debt: 'Debts',
+      c_equity: 'Equities', c_bonds: 'Bonds', c_crypto: 'Crypto', c_gold: 'Gold', c_cash: 'Cash', c_pension: 'Pensions',
+      c_property: 'Property', c_vehicle: 'Vehicles', c_other: 'Other', c_mixed: 'Mixed funds'
+    },
+    fr: {
+      netWorth: 'Patrimoine net', asOf: 'au {date}', hide: 'Masquer les montants', show: 'Afficher les montants',
+      p1m: '1M', pytd: 'YTD', p1y: '1 an', p5y: '5 ans', pall: 'Tout', period: 'Période', basis: 'Valeurs',
+      nominal: 'Nominal', real: 'Réel', realNote: 'Corrigé de l’inflation, en valeur du {date}',
+      since: 'depuis le {date}', invGains: 'Gains des placements', savingOther: 'Épargne et autres',
+      totalAssets: 'Actifs totaux', debts: 'Dettes', investments: 'Placements', cash: 'Liquidités',
+      savingsRate: 'Taux d’épargne', contributions: 'Versements', perMonth: '{v} par mois',
+      marketGain: '{v} de plus-value de marché', returnApprox: '{p} de rendement', avgOver: 'moyenne sur {n} mois',
+      goal: '{p} de l’objectif de {v} pour le {date}', chartTitle: 'Évolution du patrimoine net', total: 'Total', byGroup: 'Par catégorie',
+      showTable: 'Tableau', showChart: 'Graphique', oneSnapshot: 'La courbe apparaît après la deuxième mise à jour mensuelle.',
+      allocation: 'Répartition', tabGroups: 'Catégories', tabAccounts: 'Comptes', tabClasses: 'Classes d’actifs',
+      assetsOnly: 'Part des actifs totaux. Les dettes ({v}) ne sont pas incluses.', accountsTitle: 'Comptes', account: 'Compte',
+      value: 'Valeur', change: 'Variation', share: 'Part', estimated: 'estimé',
+      estimatedHint: 'Pas mis à jour ce mois-ci : valeur reprise d’un mois précédent', newAcc: 'nouveau',
+      holdingsTitle: 'Positions', holding: 'Position', quantity: 'Quantité', price: 'Cours', cost: 'Prix de revient', gain: 'Plus-value',
+      ret: 'Rendement', weight: 'Poids', oldPrice: 'cours ancien', holdingsNote: 'Plus-value et rendement depuis l’achat, sur le prix de revient, en {cur}.',
+      budgetTitle: 'Budget', last12: '{n} derniers mois', income: 'Revenus', expenses: 'Dépenses', saved: 'Épargné',
+      avgRate: 'Taux d’épargne moyen : {p}', categories: 'Dépenses de {month}', vsAvg: 'vs moy.',
+      tapMonth: 'Sélectionnez un mois dans le graphique pour voir ses dépenses.', date: 'Date', note: 'Note', assets: 'Actifs',
+      snapshots: '{n} relevés mensuels', disclaimer: 'Estimations pour un suivi personnel. Pas un conseil financier.',
+      madeWith: 'Réalisé avec wealth-dashboard', demo: 'Démo : tous les chiffres de cette page sont fictifs.',
+      empty: 'Pas encore de données. Dans Claude, dites « Configure mon tableau de bord patrimonial ».', noDebt: 'Aucune dette',
+      updated: 'mis à jour le {date}', changeIn: 'Variation sur la période',
+      g_invested: 'Placements', g_cash: 'Liquidités', g_retirement: 'Retraite', g_property: 'Immobilier', g_other: 'Autres actifs', g_debt: 'Dettes',
+      c_equity: 'Actions', c_bonds: 'Obligations', c_crypto: 'Crypto', c_gold: 'Or', c_cash: 'Liquidités', c_pension: 'Retraite',
+      c_property: 'Immobilier', c_vehicle: 'Véhicules', c_other: 'Autres', c_mixed: 'Fonds mixtes'
+    },
+    nl: {
+      netWorth: 'Nettovermogen', asOf: 'per {date}', hide: 'Bedragen verbergen', show: 'Bedragen tonen',
+      p1m: '1M', pytd: 'YTD', p1y: '1J', p5y: '5J', pall: 'Alles', period: 'Periode', basis: 'Waarden',
+      nominal: 'Nominaal', real: 'Reëel', realNote: 'Gecorrigeerd voor inflatie, in waarde van {date}',
+      since: 'sinds {date}', invGains: 'Beleggingsresultaat', savingOther: 'Sparen en overig',
+      totalAssets: 'Totale bezittingen', debts: 'Schulden', investments: 'Beleggingen', cash: 'Liquide middelen',
+      savingsRate: 'Spaarquote', contributions: 'Inleg', perMonth: '{v} per maand',
+      marketGain: '{v} koerswinst', returnApprox: '{p} rendement', avgOver: 'gemiddeld, laatste {n} maanden',
+      goal: '{p} van het doel van {v} voor {date}', chartTitle: 'Nettovermogen in de tijd', total: 'Totaal', byGroup: 'Per groep',
+      showTable: 'Tabel', showChart: 'Grafiek', oneSnapshot: 'De lijn verschijnt na je tweede maandelijkse update.',
+      allocation: 'Verdeling', tabGroups: 'Groepen', tabAccounts: 'Rekeningen', tabClasses: 'Beleggingscategorieën',
+      assetsOnly: 'Aandeel in de totale bezittingen. Schulden ({v}) tellen niet mee.', accountsTitle: 'Rekeningen', account: 'Rekening',
+      value: 'Waarde', change: 'Verandering', share: 'Aandeel', estimated: 'geschat',
+      estimatedHint: 'Deze maand niet bijgewerkt: waarde van een eerdere maand', newAcc: 'nieuw',
+      holdingsTitle: 'Posities', holding: 'Positie', quantity: 'Aantal', price: 'Koers', cost: 'Kostprijs', gain: 'Winst',
+      ret: 'Rendement', weight: 'Gewicht', oldPrice: 'oude koers', holdingsNote: 'Winst en rendement sinds aankoop, op kostprijs, in {cur}.',
+      budgetTitle: 'Budget', last12: 'Laatste {n} maanden', income: 'Inkomsten', expenses: 'Uitgaven', saved: 'Gespaard',
+      avgRate: 'Gemiddelde spaarquote: {p}', categories: 'Uitgaven in {month}', vsAvg: 't.o.v. gem.',
+      tapMonth: 'Kies een maand in de grafiek om de uitgaven te zien.', date: 'Datum', note: 'Notitie', assets: 'Bezittingen',
+      snapshots: '{n} maandstanden', disclaimer: 'Schattingen voor persoonlijk overzicht. Geen financieel advies.',
+      madeWith: 'Gemaakt met wealth-dashboard', demo: 'Demo: alle getallen op deze pagina zijn verzonnen.',
+      empty: 'Nog geen gegevens. Zeg in Claude: “Zet mijn vermogensdashboard op”.', noDebt: 'Geen schulden',
+      updated: 'bijgewerkt {date}', changeIn: 'Verandering in periode',
+      g_invested: 'Beleggingen', g_cash: 'Liquide middelen', g_retirement: 'Pensioen', g_property: 'Vastgoed', g_other: 'Overige bezittingen', g_debt: 'Schulden',
+      c_equity: 'Aandelen', c_bonds: 'Obligaties', c_crypto: 'Crypto', c_gold: 'Goud', c_cash: 'Liquide middelen', c_pension: 'Pensioen',
+      c_property: 'Vastgoed', c_vehicle: 'Voertuigen', c_other: 'Overig', c_mixed: 'Mixfondsen'
+    },
+    de: {
+      netWorth: 'Nettovermögen', asOf: 'Stand {date}', hide: 'Beträge ausblenden', show: 'Beträge einblenden',
+      p1m: '1M', pytd: 'YTD', p1y: '1J', p5y: '5J', pall: 'Alle', period: 'Zeitraum', basis: 'Werte',
+      nominal: 'Nominal', real: 'Real', realNote: 'Inflationsbereinigt, in Kaufkraft vom {date}',
+      since: 'seit {date}', invGains: 'Anlageertrag', savingOther: 'Sparen und Sonstiges',
+      totalAssets: 'Gesamtvermögen', debts: 'Schulden', investments: 'Geldanlagen', cash: 'Liquidität',
+      savingsRate: 'Sparquote', contributions: 'Einzahlungen', perMonth: '{v} pro Monat',
+      marketGain: '{v} Kursgewinn', returnApprox: '{p} Rendite', avgOver: 'Durchschnitt, letzte {n} Monate',
+      goal: '{p} des Ziels von {v} bis {date}', chartTitle: 'Nettovermögen im Zeitverlauf', total: 'Gesamt', byGroup: 'Nach Gruppe',
+      showTable: 'Tabelle', showChart: 'Diagramm', oneSnapshot: 'Die Kurve erscheint nach der zweiten monatlichen Aktualisierung.',
+      allocation: 'Aufteilung', tabGroups: 'Gruppen', tabAccounts: 'Konten', tabClasses: 'Anlageklassen',
+      assetsOnly: 'Anteil am Gesamtvermögen. Schulden ({v}) sind nicht enthalten.', accountsTitle: 'Konten', account: 'Konto',
+      value: 'Wert', change: 'Veränderung', share: 'Anteil', estimated: 'geschätzt',
+      estimatedHint: 'Diesen Monat nicht aktualisiert: Wert aus einem früheren Monat', newAcc: 'neu',
+      holdingsTitle: 'Positionen', holding: 'Position', quantity: 'Stück', price: 'Kurs', cost: 'Einstand', gain: 'Gewinn',
+      ret: 'Rendite', weight: 'Gewicht', oldPrice: 'alter Kurs', holdingsNote: 'Gewinn und Rendite seit Kauf, auf Einstandsbasis, in {cur}.',
+      budgetTitle: 'Budget', last12: 'Letzte {n} Monate', income: 'Einnahmen', expenses: 'Ausgaben', saved: 'Gespart',
+      avgRate: 'Durchschnittliche Sparquote: {p}', categories: 'Ausgaben im {month}', vsAvg: 'vs. Ø',
+      tapMonth: 'Monat im Diagramm wählen, um die Ausgaben zu sehen.', date: 'Datum', note: 'Notiz', assets: 'Vermögen',
+      snapshots: '{n} Monatsstände', disclaimer: 'Schätzungen für den persönlichen Überblick. Keine Finanzberatung.',
+      madeWith: 'Erstellt mit wealth-dashboard', demo: 'Demo: Alle Zahlen auf dieser Seite sind erfunden.',
+      empty: 'Noch keine Daten. Sag in Claude: „Richte mein Vermögens-Dashboard ein“.', noDebt: 'Keine Schulden',
+      updated: 'aktualisiert {date}', changeIn: 'Veränderung im Zeitraum',
+      g_invested: 'Geldanlagen', g_cash: 'Liquidität', g_retirement: 'Altersvorsorge', g_property: 'Immobilien', g_other: 'Sonstiges Vermögen', g_debt: 'Schulden',
+      c_equity: 'Aktien', c_bonds: 'Anleihen', c_crypto: 'Krypto', c_gold: 'Gold', c_cash: 'Liquidität', c_pension: 'Altersvorsorge',
+      c_property: 'Immobilien', c_vehicle: 'Fahrzeuge', c_other: 'Sonstiges', c_mixed: 'Mischfonds'
+    },
+    es: {
+      netWorth: 'Patrimonio neto', asOf: 'a {date}', hide: 'Ocultar importes', show: 'Mostrar importes',
+      p1m: '1M', pytd: 'YTD', p1y: '1A', p5y: '5A', pall: 'Todo', period: 'Periodo', basis: 'Valores',
+      nominal: 'Nominal', real: 'Real', realNote: 'Ajustado por inflación, en valor de {date}',
+      since: 'desde {date}', invGains: 'Rendimiento de inversiones', savingOther: 'Ahorro y otros',
+      totalAssets: 'Activos totales', debts: 'Deudas', investments: 'Inversiones', cash: 'Liquidez',
+      savingsRate: 'Tasa de ahorro', contributions: 'Aportaciones', perMonth: '{v} al mes',
+      marketGain: '{v} de plusvalía de mercado', returnApprox: '{p} de rentabilidad', avgOver: 'media, últimos {n} meses',
+      goal: '{p} del objetivo de {v} para {date}', chartTitle: 'Patrimonio neto a lo largo del tiempo', total: 'Total', byGroup: 'Por grupo',
+      showTable: 'Tabla', showChart: 'Gráfico', oneSnapshot: 'La línea aparecerá tras tu segunda actualización mensual.',
+      allocation: 'Distribución', tabGroups: 'Grupos', tabAccounts: 'Cuentas', tabClasses: 'Clases de activo',
+      assetsOnly: 'Porcentaje de los activos totales. Las deudas ({v}) no se incluyen.', accountsTitle: 'Cuentas', account: 'Cuenta',
+      value: 'Valor', change: 'Variación', share: 'Peso', estimated: 'estimado',
+      estimatedHint: 'No actualizado este mes: valor de un mes anterior', newAcc: 'nuevo',
+      holdingsTitle: 'Posiciones', holding: 'Posición', quantity: 'Cantidad', price: 'Precio', cost: 'Coste', gain: 'Ganancia',
+      ret: 'Rentabilidad', weight: 'Peso', oldPrice: 'precio antiguo', holdingsNote: 'Ganancia y rentabilidad desde la compra, sobre el coste, en {cur}.',
+      budgetTitle: 'Presupuesto', last12: 'Últimos {n} meses', income: 'Ingresos', expenses: 'Gastos', saved: 'Ahorrado',
+      avgRate: 'Tasa de ahorro media: {p}', categories: 'Gastos de {month}', vsAvg: 'vs media',
+      tapMonth: 'Elige un mes en el gráfico para ver sus gastos.', date: 'Fecha', note: 'Nota', assets: 'Activos',
+      snapshots: '{n} registros mensuales', disclaimer: 'Estimaciones para seguimiento personal. No es asesoramiento financiero.',
+      madeWith: 'Hecho con wealth-dashboard', demo: 'Demo: todas las cifras de esta página son inventadas.',
+      empty: 'Aún no hay datos. En Claude, di “Configura mi panel de patrimonio”.', noDebt: 'Sin deudas',
+      updated: 'actualizado {date}', changeIn: 'Variación en el periodo',
+      g_invested: 'Inversiones', g_cash: 'Liquidez', g_retirement: 'Pensiones', g_property: 'Inmuebles', g_other: 'Otros activos', g_debt: 'Deudas',
+      c_equity: 'Acciones', c_bonds: 'Bonos', c_crypto: 'Cripto', c_gold: 'Oro', c_cash: 'Liquidez', c_pension: 'Pensiones',
+      c_property: 'Inmuebles', c_vehicle: 'Vehículos', c_other: 'Otros', c_mixed: 'Fondos mixtos'
+    }
+  };
+  var L = Object.assign({}, STR.en, STR[LANG] || {}, S.labels || {});
+  function t(key, vars) {
+    var s = L[key] != null ? String(L[key]) : key;
+    if (vars) for (var k in vars) s = s.split('{' + k + '}').join(vars[k]);
+    return s;
+  }
+  function groupLabel(g) { return (S.group_labels || {})[g] || t('g_' + g); }
+  function classLabel(c) {
+    if (L['c_' + c]) return L['c_' + c];
+    var s = String(c || 'other');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // --------------------------------------------------------------- prefs
+  var PREF_KEY = 'wealth-dashboard:prefs';
+  var state = { period: 'ytd', basis: 'nominal', chartMode: 'total', alloc: 'groups', hide: false, table: false, budgetSel: null, sort: { key: 'value', dir: -1 } };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* storage unavailable */ }
+  state.table = false; state.budgetSel = null;
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify({ period: state.period, basis: state.basis, chartMode: state.chartMode, alloc: state.alloc, hide: state.hide, sort: state.sort }));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  // ------------------------------------------------------------- formats
+  function nf(opts) {
+    try { return new Intl.NumberFormat(LOCALE, opts); } catch (e) {
+      try { return new Intl.NumberFormat(undefined, opts); } catch (e2) { return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }); }
+    }
+  }
+  function df(opts) {
+    opts.timeZone = 'UTC';
+    try { return new Intl.DateTimeFormat(LOCALE, opts); } catch (e) { return new Intl.DateTimeFormat(undefined, opts); }
+  }
+  var fMoney = nf({ style: 'currency', currency: CUR, maximumFractionDigits: 0, minimumFractionDigits: 0 });
+  var fCompact = nf({ style: 'currency', currency: CUR, notation: 'compact', maximumFractionDigits: 1 });
+  var fPct = nf({ style: 'percent', maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  var fPct0 = nf({ style: 'percent', maximumFractionDigits: 0 });
+  var fQty = nf({ maximumFractionDigits: 4 });
+  var fDate = df({ day: 'numeric', month: 'short', year: 'numeric' });
+  var fMonY = df({ month: 'short', year: '2-digit' });
+  var fMon = df({ month: 'short' });
+  var fDayMon = df({ day: 'numeric', month: 'short' });
+  var fMonthLong = df({ month: 'long', year: 'numeric' });
+  var fYear = df({ year: 'numeric' });
+  var MINUS = '−';
+  var DOTS = '••••';
+
+  function money(v) { return state.hide ? DOTS : fMoney.format(Math.round(v || 0)).replace('-', MINUS); }
+  function smoney(v) {
+    if (state.hide) return DOTS;
+    var r = Math.round(v || 0);
+    return (r > 0 ? '+' : r < 0 ? MINUS : '') + fMoney.format(Math.abs(r));
+  }
+  function compact(v) { return state.hide ? '' : fCompact.format(v).replace('-', MINUS); }
+  function pct(v) { return v == null || !isFinite(v) ? '–' : fPct.format(v).replace('-', MINUS); }
+  function spct(v) { return v == null || !isFinite(v) ? '–' : (v > 0.0005 ? '+' : '') + pct(v); }
+  function priceFmt(v, cur) {
+    try { return nf({ style: 'currency', currency: cur || CUR, maximumFractionDigits: v < 10 ? 4 : 2, minimumFractionDigits: 2 }).format(v); } catch (e) { return fQty.format(v) + ' ' + (cur || ''); }
+  }
+  function d(s) { return new Date(String(s).slice(0, 10) + 'T00:00:00Z'); }
+  function mDate(k) { var p = String(k).split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, 1)); }
+  function dir(v) { return v > 0.5 ? 'up' : v < -0.5 ? 'down' : 'flat'; }
+  function arrow(v) { return v > 0.5 ? '▲' : v < -0.5 ? '▼' : '–'; }
+
+  // ----------------------------------------------------------------- dom
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    setAttrs(e, attrs);
+    for (var i = 2; i < arguments.length; i++) add(e, arguments[i]);
+    return e;
+  }
+  function sv(tag, attrs) {
+    var e = document.createElementNS(SVGNS, tag);
+    setAttrs(e, attrs);
+    for (var i = 2; i < arguments.length; i++) add(e, arguments[i]);
+    return e;
+  }
+  function setAttrs(e, attrs) {
+    if (!attrs) return;
+    for (var k in attrs) {
+      var v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'class') e.setAttribute('class', v);
+      else if (k === 'text') e.textContent = v;
+      else if (k === 'style' && typeof v === 'object') { for (var p in v) e.style.setProperty(p, v[p]); }
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? '' : v);
+    }
+  }
+  function add(e, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach(function (x) { add(e, x); }); return; }
+    e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  function $(id) { return document.getElementById(id); }
+
+  // --------------------------------------------------------- derive data
+  var accounts = RAW.accounts || [];
+  var accById = {};
+  accounts.forEach(function (a) { accById[a.id] = a; });
+  var holdings = RAW.holdings || [];
+  var snaps = (RAW.snapshots || []).slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; }).map(function (s) {
+    var g = { invested: 0, cash: 0, retirement: 0, property: 0, other: 0, debt: 0 };
+    var vals = s.values || {};
+    Object.keys(vals).forEach(function (k) {
+      var grp = (accById[k] || {}).group || 'other';
+      if (!(grp in g)) grp = 'other';
+      g[grp] += +vals[k] || 0;
+    });
+    var assets = GROUPS.reduce(function (a, k) { return a + g[k]; }, 0);
+    return { date: s.date, t: d(s.date).getTime(), values: vals, g: g, assets: assets, debt: g.debt, net: assets - g.debt,
+      contrib: +s.contributions || 0, carried: s.carried || [], note: s.note || '' };
+  });
+  var N = snaps.length;
+  var HAS_CONTRIB = snaps.some(function (s) { return s.contrib; });
+  var LAST = snaps[N - 1];
+  var budgetMonths = ((RAW.budget || {}).months || []).slice().sort(function (a, b) { return a.month < b.month ? -1 : 1; });
+  var INFL = S.inflation || null;
+  var hasReal = !!(INFL && (INFL.index && Object.keys(INFL.index).length || INFL.annual_rate != null));
+  if (!hasReal) state.basis = 'nominal';
+
+  function cpiAt(dateStr) {
+    var keys = Object.keys(INFL.index).sort();
+    var m = String(dateStr).slice(0, 7), best = keys[0];
+    for (var i = 0; i < keys.length; i++) if (keys[i] <= m) best = keys[i];
+    return INFL.index[best];
+  }
+  function deflator(dateStr) {
+    if (state.basis !== 'real' || !hasReal || !LAST) return 1;
+    if (INFL.index && Object.keys(INFL.index).length) {
+      var a = cpiAt(LAST.date), b = cpiAt(dateStr);
+      return a && b ? a / b : 1;
+    }
+    var yrs = (LAST.t - d(dateStr).getTime()) / (365.25 * DAY);
+    return Math.pow(1 + INFL.annual_rate, yrs);
+  }
+  function addMonths(ts, m) {
+    var x = new Date(ts), y = x.getUTCFullYear(), mo = x.getUTCMonth() + m, day = x.getUTCDate();
+    var last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    return Date.UTC(y, mo, Math.min(day, last));
+  }
+  function baselineIndex() {
+    if (N < 2) return 0;
+    var lt = LAST.t, cut;
+    if (state.period === '1m') cut = addMonths(lt, -1);
+    else if (state.period === 'ytd') cut = Date.UTC(new Date(lt).getUTCFullYear() - 1, 11, 31);
+    else if (state.period === '1y') cut = addMonths(lt, -12);
+    else if (state.period === '5y') cut = addMonths(lt, -60);
+    else return 0;
+    var idx = -1;
+    for (var i = 0; i < N; i++) if (snaps[i].t <= cut + 5 * DAY) idx = i;
+    if (idx < 0) return 0;
+    if (idx >= N - 1) idx = N - 2;
+    return idx;
+  }
+  function periodStats() {
+    var bi = baselineIndex(), base = snaps[bi], fb = deflator(base.date);
+    var C = 0, wC = 0, span = LAST.t - base.t || 1;
+    for (var i = bi + 1; i < N; i++) {
+      var c = snaps[i].contrib * deflator(snaps[i].date);
+      C += c; wC += c * (LAST.t - snaps[i].t) / span;
+    }
+    var nwBase = base.net * fb, change = LAST.net - nwBase;
+    var iBase = base.g.invested * fb, invGain = LAST.g.invested - iBase - C;
+    var denom = iBase + wC;
+    var months = Math.max(1, Math.round((LAST.t - base.t) / (30.44 * DAY)));
+    return { bi: bi, base: base, fb: fb, change: change, pct: nwBase ? change / Math.abs(nwBase) : null, C: C,
+      invGain: invGain, ret: denom > 0 ? invGain / denom : null, other: change - invGain, months: months };
+  }
+
+  // ------------------------------------------------------------- tooltip
+  var tip = $('tip');
+  function showTip(node, x, y) {
+    tip.textContent = '';
+    tip.appendChild(node);
+    tip.hidden = false;
+    var r = tip.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    var left = x + 14, top = y + 14;
+    if (left + r.width > vw - 8) left = x - r.width - 14;
+    if (left < 8) left = 8;
+    if (top + r.height > vh - 8) top = y - r.height - 14;
+    if (top < 8) top = 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+  function tipRow(key, value, label) { return h('div', { class: 'tr' }, key, h('b', { text: value }), h('span', { text: label })); }
+  function lineKey(color) { return h('i', { class: 'lk', style: { background: color } }); }
+  function swatch(color) { return h('i', { class: 'sw', style: { background: color } }); }
+  window.addEventListener('scroll', hideTip, { passive: true });
+  document.addEventListener('pointerdown', function (e) { if (!(e.target.closest && e.target.closest('.chart'))) hideTip(); });
+
+  // -------------------------------------------------------------- scales
+  function niceTicks(min, max, count) {
+    if (!(max > min)) max = min + 1;
+    var raw = (max - min) / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+    var step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
+    var lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, out = [];
+    for (var v = lo; v <= hi + step * 1e-6; v += step) out.push(Math.round(v / step) * step);
+    return out;
+  }
+  function timeTicks(t0, t1, plotW) {
+    var maxN = Math.max(2, Math.floor(plotW / 74)), out = [];
+    if (t1 <= t0) return [{ t: t0, label: fMonY.format(new Date(t0)) }];
+    var months = (t1 - t0) / (30.44 * DAY);
+    if (months > 30) {
+      var y0 = new Date(t0).getUTCFullYear() + 1, y1 = new Date(t1).getUTCFullYear();
+      var ny = y1 - y0 + 1, k = Math.max(1, Math.ceil(ny / maxN));
+      for (var y = y0; y <= y1; y += k) out.push({ t: Date.UTC(y, 0, 1), label: fYear.format(new Date(Date.UTC(y, 0, 1))) });
+      return out;
+    }
+    var steps = [1, 2, 3, 6, 12], st = 12;
+    for (var i = 0; i < steps.length; i++) if (months / steps[i] <= maxN) { st = steps[i]; break; }
+    var x = new Date(t0), m = Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 1);
+    while (m <= t1) {
+      var dm = new Date(m);
+      if (dm.getUTCMonth() % st === 0 || st === 1) out.push({ t: m, label: fMonY.format(dm) });
+      m = Date.UTC(dm.getUTCFullYear(), dm.getUTCMonth() + 1, 1);
+    }
+    if (!out.length) out.push({ t: t1, label: fMonY.format(new Date(t1)) });
+    return out;
+  }
+  function textW(s, px) { return String(s).length * (px || 11) * 0.6 + 4; }
+  function cssVar(name) { return 'var(' + name + ')'; }
+
+  // ------------------------------------------------------------ sections
+  function renderHeader() {
+    document.title = S.title || 'Wealth dashboard';
+    $('title').textContent = S.title || 'Wealth dashboard';
+    var meta = $('meta');
+    meta.textContent = '';
+    if (S.owner) add(meta, h('span', { text: S.owner }));
+    add(meta, h('span', { text: CUR }));
+    if (LAST) add(meta, h('span', { text: t('asOf', { date: fDate.format(d(LAST.date)) }) }));
+    var btn = $('hide-btn');
+    btn.textContent = '';
+    var eye = sv('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'aria-hidden': 'true' },
+      sv('path', { d: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z', fill: 'none' }),
+      sv('circle', { cx: '12', cy: '12', r: '3', fill: 'none' }),
+      state.hide ? sv('path', { d: 'M4 4l16 16', fill: 'none' }) : null);
+    add(btn, [eye, h('span', { text: state.hide ? t('show') : t('hide') })]);
+    btn.setAttribute('aria-pressed', state.hide ? 'true' : 'false');
+    var banner = $('banner');
+    banner.hidden = !S.demo;
+    if (S.demo) banner.textContent = t('demo');
+  }
+
+  function segButtons(options, current, onPick, label) {
+    var wrap = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+    options.forEach(function (o) {
+      wrap.appendChild(h('button', { type: 'button', 'aria-pressed': o[0] === current ? 'true' : 'false', text: o[1],
+        onclick: function () { onPick(o[0]); } }));
+    });
+    return wrap;
+  }
+
+  function renderFilters(main) {
+    var row = h('div', { class: 'filters' });
+    row.appendChild(h('div', { class: 'fgroup' }, h('span', { class: 'lbl', text: t('period') }),
+      segButtons([['1m', t('p1m')], ['ytd', t('pytd')], ['1y', t('p1y')], ['5y', t('p5y')], ['all', t('pall')]], state.period,
+        function (v) { state.period = v; savePrefs(); renderMain(); }, t('period'))));
+    if (hasReal) {
+      row.appendChild(h('div', { class: 'fgroup' }, h('span', { class: 'lbl', text: t('basis') }),
+        segButtons([['nominal', t('nominal')], ['real', t('real')]], state.basis,
+          function (v) { state.basis = v; savePrefs(); renderMain(); }, t('basis'))));
+    }
+    main.appendChild(row);
+    if (state.basis === 'real') main.appendChild(h('p', { class: 'note-line', text: t('realNote', { date: fDate.format(d(LAST.date)) }) }));
+  }
+
+  function renderHero(main, ps) {
+    var hero = h('section', { class: 'hero', 'aria-label': t('netWorth') });
+    var left = h('div', { class: 'hero-main' }, h('p', { class: 'eyebrow', text: t('netWorth') }),
+      h('div', { class: 'hero-value', text: money(LAST.net) }));
+    if (N > 1) {
+      var dl = h('div', { class: 'delta' },
+        h('span', { class: dir(ps.change) + ' amt', text: arrow(ps.change) + ' ' + smoney(ps.change) }),
+        h('span', { class: dir(ps.change), text: '(' + spct(ps.pct) + ')' }),
+        h('span', { class: 'flat', text: t('since', { date: fDate.format(d(ps.base.date)) }) }));
+      left.appendChild(dl);
+      left.appendChild(h('div', { class: 'split' },
+        h('span', null, (HAS_CONTRIB ? t('invGains') : t('investments')) + ' ', h('b', { text: smoney(ps.invGain) })),
+        h('span', null, t('savingOther') + ' ', h('b', { text: smoney(ps.other) }))));
+    }
+    var goal = S.goal;
+    if (goal && goal.net_worth > 0) {
+      var frac = Math.max(0, Math.min(1, LAST.net / goal.net_worth));
+      left.appendChild(h('div', { class: 'goal' },
+        h('div', { class: 'meter', role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(frac * 100)) },
+          h('i', { style: { width: (frac * 100).toFixed(1) + '%' } })),
+        h('p', { text: t('goal', { p: fPct0.format(LAST.net / goal.net_worth), v: money(goal.net_worth), date: goal.by ? fDate.format(d(goal.by)) : '–' }) })));
+    }
+    hero.appendChild(left);
+
+    var tiles = h('div', { class: 'tiles' }), cands = [];
+    function tile(k, v, sub) { cands.push(h('div', { class: 'tile' }, h('div', { class: 'k', text: k }), h('div', { class: 'v', text: v }), h('div', { class: 's', text: sub || '\u00a0' }))); }
+    tile(t('totalAssets'), money(LAST.assets), LAST.debt > 0 ? t('debts') + ' ' + money(-LAST.debt) : t('noDebt'));
+    if (HAS_CONTRIB) {
+      tile(t('investments'), money(LAST.g.invested), N > 1 ? t('marketGain', { v: smoney(ps.invGain) }) + (ps.ret != null && !state.hide ? ' \u00b7 ' + t('returnApprox', { p: spct(ps.ret) }) : '') : '');
+      tile(t('contributions'), N > 1 ? smoney(ps.C) : '\u2013', N > 1 ? t('perMonth', { v: smoney(ps.C / ps.months) }) : '');
+    } else {
+      tile(t('investments'), money(LAST.g.invested), N > 1 ? smoney(LAST.g.invested - ps.base.g.invested * ps.fb) + ' ' + t('since', { date: fMonY.format(d(ps.base.date)) }) : '');
+    }
+    var b = budgetSummary();
+    if (b) tile(t('savingsRate'), pct(b.avgRate), t('avgOver', { n: b.months.length }));
+    tile(t('cash'), money(LAST.g.cash), LAST.assets ? fPct0.format(LAST.g.cash / LAST.assets) + ' ' + t('share').toLowerCase() : '');
+    if (LAST.g.retirement > 0) tile(groupLabel('retirement'), money(LAST.g.retirement), LAST.assets ? fPct0.format(LAST.g.retirement / LAST.assets) + ' ' + t('share').toLowerCase() : '');
+    cands.slice(0, 4).forEach(function (x) { tiles.appendChild(x); });
+    hero.appendChild(tiles);
+    main.appendChild(hero);
+  }
+
+  // ---------------------------------------------------- net worth chart
+  var chartIdx = null;
+  function renderChartPanel(main, ps) {
+    var panel = h('section', { class: 'panel', 'aria-labelledby': 'ch-t' });
+    var head = h('div', { class: 'panel-head' }, h('div', null, h('h2', { id: 'ch-t', text: t('chartTitle') }),
+      h('p', { class: 'sub', text: t('since', { date: fDate.format(d(ps.base.date)) }) + (state.basis === 'real' ? ' · ' + t('real') : '') })));
+    var ctl = h('div', { class: 'head-ctl' });
+    if (!state.table) ctl.appendChild(segButtons([['total', t('total')], ['groups', t('byGroup')]], state.chartMode,
+      function (v) { state.chartMode = v; savePrefs(); renderMain(); }, t('chartTitle')));
+    ctl.appendChild(h('button', { type: 'button', class: 'ghost', 'aria-pressed': state.table ? 'true' : 'false', text: state.table ? t('showChart') : t('showTable'),
+      onclick: function () { state.table = !state.table; renderMain(); } }));
+    head.appendChild(ctl);
+    panel.appendChild(head);
+    if (state.table) {
+      panel.appendChild(historyTable(ps));
+    } else {
+      panel.appendChild(h('ul', { class: 'legend', id: 'ch-legend' }));
+      panel.appendChild(h('div', { class: 'chart', id: 'chart', tabindex: '0', role: 'img' }));
+      if (N === 1) panel.appendChild(h('p', { class: 'empty-note', text: t('oneSnapshot') }));
+    }
+    main.appendChild(panel);
+  }
+  function chartPoints() {
+    var bi = baselineIndex();
+    return snaps.slice(bi).map(function (s) {
+      var f = deflator(s.date), g = {};
+      ALLG.forEach(function (k) { g[k] = s.g[k] * f; });
+      return { s: s, t: s.t, net: s.net * f, assets: s.assets * f, debt: s.debt * f, g: g };
+    });
+  }
+  function activeGroups(pts) { return GROUPS.filter(function (g) { return pts.some(function (p) { return p.g[g] > 0; }); }); }
+  function renderChartLegend() {
+    var lg = $('ch-legend');
+    if (!lg) return;
+    lg.textContent = '';
+    if (state.chartMode !== 'groups') { lg.hidden = true; return; }
+    lg.hidden = false;
+    var pts = chartPoints();
+    activeGroups(pts).forEach(function (g) { lg.appendChild(h('li', null, swatch(cssVar('--s-' + g)), groupLabel(g))); });
+    if (pts.some(function (p) { return p.debt > 0; })) lg.appendChild(h('li', null, lineKey(cssVar('--ink')), t('netWorth')));
+  }
+  function drawNetChart() {
+    var box = $('chart');
+    if (!box) return;
+    box.textContent = '';
+    hideTip();
+    var pts = chartPoints();
+    if (!pts.length) return;
+    var W = Math.max(280, Math.round(box.getBoundingClientRect().width || 640));
+    var H = W < 560 ? 230 : 290;
+    var mode = state.chartMode, groups = activeGroups(pts);
+    var showNet = mode === 'groups' && pts.some(function (p) { return p.debt > 0; });
+    var ymax = Math.max.apply(null, pts.map(function (p) { return mode === 'groups' ? p.assets : p.net; }));
+    var ymin = Math.min(0, Math.min.apply(null, pts.map(function (p) { return p.net; })));
+    if (mode === 'total') {
+      // A line needs no zero baseline: zoom to the data when it moves within a narrow band.
+      var mn = Math.min.apply(null, pts.map(function (p) { return p.net; })), mx = ymax;
+      if (mn > 0 && mx - mn < 0.6 * mx) {
+        var span = Math.max(mx - mn, mx * 0.06) * 1.3, mid = (mx + mn) / 2;
+        ymin = Math.max(0, mid - span / 2); ymax = mid + span / 2;
+      }
+    }
+    var ticks = niceTicks(ymin, ymax, W < 560 ? 4 : 5), lo = ticks[0], hi = ticks[ticks.length - 1];
+    var labW = state.hide ? 8 : Math.max.apply(null, ticks.map(function (v) { return textW(compact(v)); }));
+    var m = { l: labW + 10, r: 14, t: 12, b: 26 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+    var t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    function X(tt) { return t1 > t0 ? m.l + (tt - t0) / (t1 - t0) * pw : m.l + pw / 2; }
+    function Y(v) { return m.t + (hi - v) / (hi - lo) * ph; }
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, 'aria-hidden': 'true' });
+    ticks.forEach(function (v) {
+      svg.appendChild(sv('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v === 0 ? cssVar('--axis') : cssVar('--grid'), 'stroke-width': 1, 'shape-rendering': 'crispEdges' }));
+      if (!state.hide) svg.appendChild(sv('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cssVar('--muted'), text: compact(v) }));
+    });
+    var xt = t1 - t0 < 100 * DAY ? pts.map(function (p) { return { t: p.t, label: fDayMon.format(new Date(p.t)) }; }) : timeTicks(t0, t1, pw);
+    xt.forEach(function (tk) {
+      if (tk.t < t0 - DAY || tk.t > t1 + DAY) return;
+      var x = X(tk.t), anchor = 'middle';
+      if (x < m.l + 24) { x = m.l; anchor = 'start'; } else if (x > W - m.r - 24) { x = W - m.r; anchor = 'end'; }
+      svg.appendChild(sv('text', { x: x, y: H - 6, 'text-anchor': anchor, 'font-size': 11, fill: cssVar('--muted'), text: tk.label }));
+    });
+    var base = Y(Math.max(lo, Math.min(0, hi)));
+    function linePath(ys) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + X(p.t).toFixed(1) + ',' + ys[i].toFixed(1); }).join(''); }
+    if (mode === 'groups') {
+      var cum = pts.map(function () { return 0; });
+      groups.forEach(function (g, gi) {
+        var lower = cum.slice(), upper = pts.map(function (p, i) { return cum[i] + p.g[g]; });
+        cum = upper;
+        var top = upper.map(Y), bot = lower.map(Y);
+        var dpath = linePath(top) + pts.slice().reverse().map(function (p, j) { var i = pts.length - 1 - j; return 'L' + X(p.t).toFixed(1) + ',' + bot[i].toFixed(1); }).join('') + 'Z';
+        if (pts.length === 1) {
+          var x1 = X(pts[0].t);
+          svg.appendChild(sv('rect', { x: x1 - 12, y: top[0], width: 24, height: Math.max(0, bot[0] - top[0]), fill: cssVar('--s-' + g) }));
+        } else {
+          svg.appendChild(sv('path', { d: dpath, fill: cssVar('--s-' + g), 'fill-opacity': 0.9 }));
+          if (gi < groups.length - 1) svg.appendChild(sv('path', { d: linePath(top), fill: 'none', stroke: cssVar('--surface'), 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+        }
+      });
+      if (showNet && pts.length > 1) svg.appendChild(sv('path', { d: linePath(pts.map(function (p) { return Y(p.net); })), fill: 'none', stroke: cssVar('--ink'), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    } else if (pts.length > 1) {
+      var ys = pts.map(function (p) { return Y(p.net); });
+      svg.appendChild(sv('path', { d: linePath(ys) + 'L' + X(t1).toFixed(1) + ',' + base.toFixed(1) + 'L' + X(t0).toFixed(1) + ',' + base.toFixed(1) + 'Z', fill: cssVar('--s-invested'), 'fill-opacity': 0.1 }));
+      svg.appendChild(sv('path', { d: linePath(ys), fill: 'none', stroke: cssVar('--s-invested'), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    }
+    var lastP = pts[pts.length - 1];
+    var endY = Y(mode === 'groups' && !showNet ? lastP.assets : lastP.net);
+    if (mode !== 'groups' || showNet || pts.length === 1) {
+      svg.appendChild(sv('circle', { cx: X(lastP.t), cy: endY, r: 4.5, fill: mode === 'groups' ? cssVar('--ink') : cssVar('--s-invested'), stroke: cssVar('--surface'), 'stroke-width': 2 }));
+    }
+    if (mode === 'total' && !state.hide && pts.length > 1) {
+      var lbl = compact(lastP.net), lx = X(lastP.t) - 8, ly = endY - 10;
+      if (ly < m.t + 10) ly = endY + 18;
+      svg.appendChild(sv('text', { x: lx, y: ly, 'text-anchor': 'end', 'font-size': 12, 'font-weight': 600, fill: cssVar('--ink'), text: lbl }));
+    }
+    var cross = sv('line', { y1: m.t, y2: m.t + ph, stroke: cssVar('--axis'), 'stroke-width': 1, visibility: 'hidden', 'shape-rendering': 'crispEdges' });
+    var dot = sv('circle', { r: 4.5, fill: mode === 'groups' ? cssVar('--ink') : cssVar('--s-invested'), stroke: cssVar('--surface'), 'stroke-width': 2, visibility: 'hidden' });
+    svg.appendChild(cross);
+    svg.appendChild(dot);
+    var hit = sv('rect', { x: m.l - 6, y: 0, width: pw + 12, height: H, fill: 'transparent' });
+    svg.appendChild(hit);
+    box.appendChild(svg);
+    var first = pts[0];
+    box.setAttribute('aria-label', t('chartTitle') + ': ' + fDate.format(d(first.s.date)) + ' ' + money(first.net) + ', ' + fDate.format(d(lastP.s.date)) + ' ' + money(lastP.net));
+
+    function focusAt(i, cx, cy) {
+      i = Math.max(0, Math.min(pts.length - 1, i));
+      chartIdx = i;
+      var p = pts[i], x = X(p.t);
+      cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
+      var dy = Y(mode === 'groups' && !showNet ? p.assets : p.net);
+      dot.setAttribute('cx', x); dot.setAttribute('cy', dy); dot.setAttribute('visibility', 'visible');
+      var node = h('div', null, h('div', { class: 'td', text: fDate.format(d(p.s.date)) }));
+      node.appendChild(tipRow(lineKey(mode === 'groups' ? cssVar('--ink') : cssVar('--s-invested')), money(p.net), t('netWorth')));
+      if (mode === 'groups') {
+        groups.slice().reverse().forEach(function (g) { node.appendChild(tipRow(swatch(cssVar('--s-' + g)), money(p.g[g]), groupLabel(g))); });
+      }
+      if (p.debt > 0) node.appendChild(tipRow(swatch(cssVar('--s-debt')), money(-p.debt), t('debts')));
+      if (p.s.contrib && i > 0) node.appendChild(tipRow(h('i'), smoney(p.s.contrib * deflator(p.s.date)), t('contributions')));
+      if (p.s.note) node.appendChild(h('div', { class: 'td', style: { 'margin-top': '4px' }, text: p.s.note }));
+      if (cx == null) {
+        var r = svg.getBoundingClientRect(), sc = r.width / W;
+        cx = r.left + x * sc; cy = r.top + dy * sc;
+      }
+      showTip(node, cx, cy);
+    }
+    function nearest(clientX) {
+      var r = svg.getBoundingClientRect(), x = (clientX - r.left) * (W / r.width), best = 0, bd = Infinity;
+      pts.forEach(function (p, i) { var dd = Math.abs(X(p.t) - x); if (dd < bd) { bd = dd; best = i; } });
+      return best;
+    }
+    function clear() { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); hideTip(); }
+    hit.addEventListener('pointermove', function (e) { focusAt(nearest(e.clientX), e.clientX, e.clientY); });
+    hit.addEventListener('pointerdown', function (e) { focusAt(nearest(e.clientX), e.clientX, e.clientY); });
+    hit.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') clear(); });
+    box.onkeydown = function (e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        var i = chartIdx == null ? pts.length - 1 : chartIdx + (e.key === 'ArrowRight' ? 1 : -1);
+        focusAt(i);
+      } else if (e.key === 'Escape') { clear(); }
+    };
+    box.onblur = clear;
+  }
+
+  function historyTable(ps) {
+    var wrap = h('div', { class: 'scroll' });
+    var tb = h('tbody');
+    var rows = snaps.slice(ps.bi);
+    for (var i = rows.length - 1; i >= 0; i--) {
+      var s = rows[i], f = deflator(s.date), prev = i > 0 ? rows[i - 1] : (ps.bi > 0 ? snaps[ps.bi - 1] : null);
+      var ch = prev ? s.net * f - prev.net * deflator(prev.date) : null;
+      tb.appendChild(h('tr', null,
+        h('td', { text: fDate.format(d(s.date)) }),
+        h('td', { class: 'num', text: money(s.net * f) }),
+        h('td', { class: 'num hide-sm', text: money(s.assets * f) }),
+        h('td', { class: 'num hide-sm', text: s.debt ? money(-s.debt * f) : '–' }),
+        h('td', { class: 'num ' + (ch == null ? '' : dir(ch)), text: ch == null ? '–' : smoney(ch) }),
+        h('td', { class: 'num hide-sm', text: s.contrib ? smoney(s.contrib * f) : '–' }),
+        h('td', { class: 'hide-sm', text: s.note || '' })));
+    }
+    wrap.appendChild(h('table', null, h('thead', null, h('tr', null,
+      h('th', { text: t('date') }), h('th', { class: 'num', text: t('netWorth') }), h('th', { class: 'num hide-sm', text: t('assets') }),
+      h('th', { class: 'num hide-sm', text: t('debts') }), h('th', { class: 'num', text: t('change') }),
+      h('th', { class: 'num hide-sm', text: t('contributions') }), h('th', { class: 'hide-sm', text: t('note') }))), tb));
+    return wrap;
+  }
+
+  // ---------------------------------------------------------- allocation
+  function holdingValue(hd) {
+    if (hd.quantity == null || hd.price == null) return 0;
+    var fx = (hd.currency || CUR).toUpperCase() !== CUR ? (hd.fx || 0) : 1;
+    return hd.quantity * hd.price * fx;
+  }
+  var DEFAULT_CLASS = { cash: 'cash', retirement: 'pension', property: 'property', other: 'other', invested: 'other' };
+  function allocRows() {
+    var vals = LAST.values, rows = [];
+    if (state.alloc === 'groups') {
+      GROUPS.forEach(function (g) { if (LAST.g[g] > 0) rows.push({ label: groupLabel(g), value: LAST.g[g], color: cssVar('--s-' + g) }); });
+      return rows;
+    }
+    if (state.alloc === 'accounts') {
+      accounts.forEach(function (a) {
+        var v = +vals[a.id] || 0;
+        if (a.group !== 'debt' && v > 0) rows.push({ label: a.name || a.id, value: v, color: cssVar('--s-' + (GROUPS.indexOf(a.group) >= 0 ? a.group : 'other')) });
+      });
+    } else {
+      var byClass = {};
+      accounts.forEach(function (a) {
+        var v = +vals[a.id] || 0;
+        if (a.group === 'debt' || v <= 0) return;
+        var hs = holdings.filter(function (x) { return x.account === a.id; });
+        var hv = hs.map(holdingValue), tot = hv.reduce(function (x, y) { return x + y; }, 0) + (+a.cash || 0);
+        if (hs.length && tot > 0) {
+          hs.forEach(function (x, i) { var c = x.class || a.class || 'other'; byClass[c] = (byClass[c] || 0) + v * hv[i] / tot; });
+          if (+a.cash) byClass.cash = (byClass.cash || 0) + v * (+a.cash) / tot;
+        } else {
+          var c = a.class || DEFAULT_CLASS[a.group] || 'other';
+          byClass[c] = (byClass[c] || 0) + v;
+        }
+      });
+      Object.keys(byClass).forEach(function (c) { if (byClass[c] > 0.5) rows.push({ label: classLabel(c), value: byClass[c], color: cssVar('--bar') }); });
+    }
+    rows.sort(function (a, b) { return b.value - a.value; });
+    return rows;
+  }
+  function renderAllocation(parent) {
+    var panel = h('section', { class: 'panel', 'aria-labelledby': 'al-t' });
+    panel.appendChild(h('div', { class: 'panel-head' }, h('h2', { id: 'al-t', text: t('allocation') }),
+      segButtons([['groups', t('tabGroups')], ['accounts', t('tabAccounts')], ['classes', t('tabClasses')]], state.alloc,
+        function (v) { state.alloc = v; savePrefs(); renderMain(); }, t('allocation'))));
+    var rows = allocRows(), total = LAST.assets || 1;
+    if (state.alloc === 'groups') {
+      var bar = h('div', { class: 'stackbar', 'aria-hidden': 'true' });
+      rows.forEach(function (r) { bar.appendChild(h('i', { style: { width: (r.value / total * 100) + '%', background: r.color } })); });
+      panel.appendChild(bar);
+    }
+    var list = h('ul', { class: 'rows' });
+    var maxV = Math.max.apply(null, rows.map(function (r) { return r.value; }).concat([1]));
+    rows.forEach(function (r) {
+      var li = h('li', { class: 'row' }, swatch(r.color), h('span', { class: 'name', text: r.label }),
+        h('span', { class: 'val', text: money(r.value) }), h('span', { class: 'pc', text: fPct.format(r.value / total) }));
+      if (state.alloc !== 'groups') li.appendChild(h('span', { class: 'track', 'aria-hidden': 'true' }, h('i', { style: { width: (r.value / maxV * 100) + '%', background: r.color } })));
+      list.appendChild(li);
+    });
+    panel.appendChild(list);
+    if (LAST.debt > 0) panel.appendChild(h('p', { class: 'foot-note', text: t('assetsOnly', { v: money(LAST.debt) }) }));
+    parent.appendChild(panel);
+  }
+
+  // ------------------------------------------------------------ accounts
+  function renderAccounts(parent, ps) {
+    var panel = h('section', { class: 'panel', 'aria-labelledby': 'ac-t' });
+    panel.appendChild(h('div', { class: 'panel-head' }, h('div', null, h('h2', { id: 'ac-t', text: t('accountsTitle') }),
+      h('p', { class: 'sub', text: t('changeIn') + ' · ' + t('since', { date: fDate.format(d(ps.base.date)) }) }))));
+    var base = ps.base, fb = ps.fb, tb = h('tbody'), total = LAST.assets || 1;
+    ALLG.forEach(function (g) {
+      var accs = accounts.filter(function (a) { return (ALLG.indexOf(a.group) >= 0 ? a.group : 'other') === g && (LAST.values[a.id] != null || base.values[a.id] != null); });
+      if (!accs.length) return;
+      var sign = g === 'debt' ? -1 : 1;
+      var gEnd = sign * LAST.g[g], gBase = sign * base.g[g] * fb;
+      tb.appendChild(h('tr', { class: 'grp' },
+        h('td', null, h('span', { class: 'gl' }, swatch(cssVar('--s-' + g)), groupLabel(g))),
+        h('td', { class: 'num', text: money(gEnd) }),
+        h('td', { class: 'num ' + (N > 1 ? dir(gEnd - gBase) : ''), text: N > 1 ? smoney(gEnd - gBase) : '–' }),
+        h('td', { class: 'num hide-sm', text: g === 'debt' ? '' : fPct.format(LAST.g[g] / total) })));
+      accs.sort(function (a, b) { return (+LAST.values[b.id] || 0) - (+LAST.values[a.id] || 0); });
+      accs.forEach(function (a) {
+        var vEnd = sign * (+LAST.values[a.id] || 0), had = base.values[a.id] != null && ps.bi < N - 1;
+        var vBase = sign * (+base.values[a.id] || 0) * fb, ch = vEnd - vBase;
+        var nameCell = h('td', null, h('span', { class: 'nm', text: a.name || a.id }));
+        if (LAST.carried.indexOf(a.id) >= 0) nameCell.appendChild(h('span', { class: 'chip', title: t('estimatedHint'), text: '≈ ' + t('estimated') }));
+        if (a.institution) nameCell.appendChild(h('span', { class: 'in', text: a.institution }));
+        tb.appendChild(h('tr', null, nameCell,
+          h('td', { class: 'num', text: money(vEnd) }),
+          h('td', { class: 'num ' + (N > 1 && had ? dir(ch) : ''), text: N < 2 ? '–' : had ? smoney(ch) : t('newAcc') }),
+          h('td', { class: 'num hide-sm', text: g === 'debt' ? '' : fPct.format((+LAST.values[a.id] || 0) / total) })));
+      });
+    });
+    var wrap = h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null,
+      h('th', { text: t('account') }), h('th', { class: 'num', text: t('value') }), h('th', { class: 'num', text: t('change') }),
+      h('th', { class: 'num hide-sm', text: t('share') }))), tb));
+    panel.appendChild(wrap);
+    parent.appendChild(panel);
+  }
+
+  // ------------------------------------------------------------ holdings
+  function renderHoldings(main) {
+    var list = holdings.filter(function (x) { return x.quantity != null && x.price != null; }).map(function (x) {
+      var v = holdingValue(x), cost = x.cost != null ? +x.cost : null;
+      return { h: x, value: v, cost: cost, gain: cost != null ? v - cost : null, ret: cost ? (v - cost) / cost : null, acc: accById[x.account] || {} };
+    });
+    if (!list.length) return;
+    var tot = list.reduce(function (a, r) { return a + r.value; }, 0) || 1;
+    list.forEach(function (r) { r.weight = r.value / tot; });
+    if (['name', 'value', 'gain', 'ret', 'weight'].indexOf(state.sort.key) < 0) state.sort = { key: 'value', dir: -1 };
+    var key = state.sort.key, dr = state.sort.dir;
+    list.sort(function (a, b) {
+      var va = key === 'name' ? (a.h.name || '') : a[key], vb = key === 'name' ? (b.h.name || '') : b[key];
+      if (key === 'name') return dr * String(va).localeCompare(String(vb));
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return dr * (va - vb);
+    });
+    var panel = h('section', { class: 'panel', 'aria-labelledby': 'ho-t' });
+    panel.appendChild(h('div', { class: 'panel-head' }, h('div', null, h('h2', { id: 'ho-t', text: t('holdingsTitle') }),
+      h('p', { class: 'sub', text: t('holdingsNote', { cur: CUR }) }))));
+    function th(k, label, cls) {
+      var cell = h('th', { class: cls || '' });
+      if (!k) { cell.textContent = label; return cell; }
+      if (state.sort.key === k) cell.setAttribute('aria-sort', state.sort.dir > 0 ? 'ascending' : 'descending');
+      cell.appendChild(h('button', { type: 'button', class: 'sortbtn', onclick: function () {
+        if (state.sort.key === k) state.sort.dir = -state.sort.dir; else state.sort = { key: k, dir: k === 'name' ? 1 : -1 };
+        savePrefs(); renderMain();
+      } }, label, h('span', { class: 'ar', 'aria-hidden': 'true', text: state.sort.key === k && state.sort.dir > 0 ? '▲' : '▼' })));
+      return cell;
+    }
+    var ref = LAST ? LAST.t : Date.now();
+    var tb = h('tbody');
+    list.forEach(function (r) {
+      var x = r.h, stale = !x.price_date || (ref - d(x.price_date).getTime()) > 35 * DAY;
+      var name = h('td', null, h('span', { class: 'nm', text: x.name || x.ticker || x.id }));
+      if (stale) name.appendChild(h('span', { class: 'chip', title: x.price_date ? fDate.format(d(x.price_date)) : '', text: t('oldPrice') }));
+      name.appendChild(h('span', { class: 'in', text: [x.ticker, r.acc.name].filter(Boolean).join(' · ') }));
+      var qty = state.hide ? DOTS : fQty.format(x.quantity) + (x.unit ? ' ' + x.unit : '');
+      tb.appendChild(h('tr', null, name,
+        h('td', { class: 'num hide-sm', text: qty }),
+        h('td', { class: 'num hide-sm', text: priceFmt(x.price, (x.currency || CUR).toUpperCase()) }),
+        h('td', { class: 'num', text: money(r.value) }),
+        h('td', { class: 'num hide-sm ' + (r.gain == null ? '' : dir(r.gain)), text: r.gain == null ? '–' : smoney(r.gain) }),
+        h('td', { class: 'num ' + (r.ret == null ? '' : dir(r.ret * 1000)), text: spct(r.ret) }),
+        h('td', { class: 'num', text: fPct.format(r.weight) })));
+    });
+    panel.appendChild(h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null,
+      th('name', t('holding')), th(null, t('quantity'), 'num hide-sm'), th(null, t('price'), 'num hide-sm'),
+      th('value', t('value'), 'num'), th('gain', t('gain'), 'num hide-sm'), th('ret', t('ret'), 'num'), th('weight', t('weight'), 'num'))), tb)));
+    main.appendChild(panel);
+  }
+
+  // -------------------------------------------------------------- budget
+  function sumObj(o) { var s = 0; for (var k in (o || {})) s += +o[k] || 0; return s; }
+  function budgetSummary() {
+    if (!budgetMonths.length) return null;
+    var months = budgetMonths.slice(-12).map(function (m) {
+      var inc = sumObj(m.income), exp = sumObj(m.expenses);
+      return { m: m, key: m.month, inc: inc, exp: exp, saved: inc - exp, rate: inc ? (inc - exp) / inc : null };
+    });
+    var I = months.reduce(function (a, x) { return a + x.inc; }, 0), E = months.reduce(function (a, x) { return a + x.exp; }, 0);
+    return { months: months, avgRate: I ? (I - E) / I : null };
+  }
+  function renderBudget(main) {
+    var b = budgetSummary();
+    if (!b) return;
+    var months = b.months;
+    var sel = months.filter(function (x) { return x.key === state.budgetSel; })[0] || months[months.length - 1];
+    var panel = h('section', { class: 'panel', 'aria-labelledby': 'bu-t' });
+    panel.appendChild(h('div', { class: 'panel-head' }, h('div', null, h('h2', { id: 'bu-t', text: t('budgetTitle') }),
+      h('p', { class: 'sub', text: t('last12', { n: months.length }) + ' · ' + t('avgRate', { p: pct(b.avgRate) }) }))));
+    var minis = h('div', { class: 'minis' });
+    [[t('income'), money(sel.inc)], [t('expenses'), money(sel.exp)], [t('saved'), smoney(sel.saved)], [t('savingsRate'), pct(sel.rate)]].forEach(function (p) {
+      minis.appendChild(h('div', { class: 'mini' }, h('div', { class: 'k', text: p[0] + ' · ' + fMonY.format(mDate(sel.key)) }), h('div', { class: 'v', text: p[1] })));
+    });
+    panel.appendChild(minis);
+    panel.appendChild(h('ul', { class: 'legend' }, h('li', null, swatch(cssVar('--s-invested')), t('income')), h('li', null, swatch(cssVar('--s-cash')), t('expenses'))));
+    var box = h('div', { class: 'chart', id: 'bchart', tabindex: '0', 'aria-label': t('budgetTitle') + '. ' + t('tapMonth') });
+    panel.appendChild(box);
+    var cats = h('div', { class: 'cats' });
+    panel.appendChild(cats);
+    main.appendChild(panel);
+    drawBudget(box, months, sel);
+    renderCats(cats, months, sel);
+  }
+  function drawBudget(box, months, sel) {
+    box.textContent = '';
+    var W = Math.max(280, Math.round(box.getBoundingClientRect().width || 640)), H = W < 560 ? 180 : 210;
+    var maxV = Math.max.apply(null, months.map(function (x) { return Math.max(x.inc, x.exp); }).concat([1]));
+    var ticks = niceTicks(0, maxV, 4), hi = ticks[ticks.length - 1];
+    var labW = state.hide ? 8 : Math.max.apply(null, ticks.map(function (v) { return textW(compact(v)); }));
+    var m = { l: labW + 10, r: 6, t: 8, b: 24 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+    var slot = pw / months.length, bw = Math.max(3, Math.min(24, (slot - 10) / 2));
+    function Y(v) { return m.t + (hi - v) / hi * ph; }
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, 'aria-hidden': 'true' });
+    months.forEach(function (x, i) {
+      if (x.key === sel.key) svg.appendChild(sv('rect', { x: m.l + slot * i + 1, y: m.t, width: slot - 2, height: ph, rx: 4, fill: cssVar('--wash') }));
+    });
+    ticks.forEach(function (v) {
+      svg.appendChild(sv('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v === 0 ? cssVar('--axis') : cssVar('--grid'), 'stroke-width': 1, 'shape-rendering': 'crispEdges' }));
+      if (!state.hide) svg.appendChild(sv('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cssVar('--muted'), text: compact(v) }));
+    });
+    function bar(x, v, color) {
+      var y = Y(v), hgt = Y(0) - y, r = Math.min(4, bw / 2, hgt);
+      if (hgt <= 0) return;
+      svg.appendChild(sv('path', { d: 'M' + x + ',' + (y + hgt) + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y + ' ' + (x + bw) + ',' + (y + r) + 'V' + (y + hgt) + 'Z', fill: color }));
+    }
+    var every = slot < 34 ? 2 : 1;
+    months.forEach(function (x, i) {
+      var cx = m.l + slot * (i + 0.5);
+      bar(cx - bw - 1, x.inc, cssVar('--s-invested'));
+      bar(cx + 1, x.exp, cssVar('--s-cash'));
+      if ((months.length - 1 - i) % every === 0) {
+        var dt = mDate(x.key), lab = dt.getUTCMonth() === 0 || i === 0 ? fMonY.format(dt) : fMon.format(dt);
+        svg.appendChild(sv('text', { x: cx, y: H - 6, 'text-anchor': 'middle', 'font-size': 11, fill: x.key === sel.key ? cssVar('--ink') : cssVar('--muted'), 'font-weight': x.key === sel.key ? 600 : 400, text: lab }));
+      }
+      var hit = sv('rect', { x: m.l + slot * i, y: 0, width: slot, height: H, fill: 'transparent', style: { cursor: 'pointer' } });
+      function tipFor(cx2, cy2) {
+        var node = h('div', null, h('div', { class: 'td', text: fMonthLong.format(dt2(x.key)) }),
+          tipRow(swatch(cssVar('--s-invested')), money(x.inc), t('income')),
+          tipRow(swatch(cssVar('--s-cash')), money(x.exp), t('expenses')),
+          tipRow(h('i'), smoney(x.saved), t('saved') + ' · ' + pct(x.rate)));
+        showTip(node, cx2, cy2);
+      }
+      hit.addEventListener('pointermove', function (e) { tipFor(e.clientX, e.clientY); });
+      hit.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hideTip(); });
+      hit.addEventListener('click', function () { state.budgetSel = x.key; renderMain(); });
+      svg.appendChild(hit);
+    });
+    box.appendChild(svg);
+    box.onkeydown = function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      var i = months.map(function (x) { return x.key; }).indexOf(sel.key) + (e.key === 'ArrowRight' ? 1 : -1);
+      if (i >= 0 && i < months.length) { state.budgetSel = months[i].key; renderMain(); var nb = $('bchart'); if (nb) nb.focus(); }
+    };
+  }
+  function dt2(k) { return mDate(k); }
+  function renderCats(box, months, sel) {
+    var totals = {}, cats = sel.m.expenses || {};
+    months.forEach(function (x) { for (var c in (x.m.expenses || {})) totals[c] = (totals[c] || 0) + (+x.m.expenses[c] || 0); });
+    var list = Object.keys(cats).map(function (c) { return { c: c, v: +cats[c] || 0, avg: (totals[c] || 0) / months.length }; })
+      .filter(function (r) { return r.v > 0; }).sort(function (a, b) { return b.v - a.v; });
+    box.appendChild(h('h3', { text: t('categories', { month: fMonthLong.format(mDate(sel.key)) }) }));
+    var maxV = Math.max.apply(null, list.map(function (r) { return r.v; }).concat([1]));
+    list.forEach(function (r) {
+      var diff = r.avg ? (r.v - r.avg) / r.avg : null;
+      var cls = diff == null || Math.abs(diff) < 0.05 ? 'flat' : diff > 0 ? 'down' : 'up';
+      box.appendChild(h('div', { class: 'cat' }, h('span', { text: r.c }),
+        h('span', { class: 'vs ' + cls, text: diff == null ? '' : spct(diff) + ' ' + t('vsAvg') }),
+        h('span', { class: 'val', text: money(r.v) + ' · ' + fPct0.format(r.v / (sel.exp || 1)) }),
+        h('span', { class: 'track', 'aria-hidden': 'true' }, h('i', { style: { width: (r.v / maxV * 100) + '%' } }))));
+    });
+  }
+
+  // -------------------------------------------------------------- footer
+  function renderFooter() {
+    var f = $('footer');
+    f.textContent = '';
+    if (N) add(f, h('span', { text: t('snapshots', { n: N }) }));
+    if (S.updated) add(f, h('span', { text: t('updated', { date: fDate.format(d(S.updated)) }) }));
+    add(f, h('span', { text: t('disclaimer') }));
+    add(f, h('a', { href: 'https://github.com/dancingpea/wealth-dashboard', target: '_blank', rel: 'noopener', text: t('madeWith') }));
+  }
+
+  // ---------------------------------------------------------------- main
+  function renderMain() {
+    var main = $('main');
+    var y = window.scrollY;
+    main.textContent = '';
+    hideTip();
+    renderHeader();
+    if (!N) {
+      main.appendChild(h('section', { class: 'panel' }, h('p', { style: { margin: '0' }, text: t('empty') })));
+      renderFooter();
+      return;
+    }
+    var stack = h('div', { style: { display: 'flex', 'flex-direction': 'column', gap: '16px' } });
+    main.appendChild(stack);
+    renderFilters(stack);
+    var ps = periodStats();
+    renderHero(stack, ps);
+    renderChartPanel(stack, ps);
+    var g2 = h('div', { class: 'grid2' });
+    stack.appendChild(g2);
+    renderAllocation(g2);
+    renderAccounts(g2, ps);
+    renderHoldings(stack);
+    renderBudget(stack);
+    renderFooter();
+    renderChartLegend();
+    drawNetChart();
+    window.scrollTo(0, y);
+  }
+
+  $('hide-btn').addEventListener('click', function () { state.hide = !state.hide; savePrefs(); renderMain(); });
+  var lastW = 0, raf = 0;
+  function onResize() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function () {
+      var w = $('main').getBoundingClientRect().width;
+      if (Math.abs(w - lastW) < 2) return;
+      lastW = w;
+      drawNetChart();
+      var bb = $('bchart');
+      if (bb) { var b = budgetSummary(); var sel = b.months.filter(function (x) { return x.key === state.budgetSel; })[0] || b.months[b.months.length - 1]; drawBudget(bb, b.months, sel); }
+    });
+  }
+  if (window.ResizeObserver) new ResizeObserver(onResize).observe($('main'));
+  else window.addEventListener('resize', onResize);
+  renderMain();
+  lastW = $('main').getBoundingClientRect().width;
+})();
+</script>
+</body>
+</html>

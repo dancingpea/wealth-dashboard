@@ -1,0 +1,15 @@
+{
+  "name": "wealth-dashboard",
+  "description": "A guided, self-updating personal wealth dashboard built by Claude",
+  "owner": {
+    "name": "dancing_pea",
+    "url": "https://github.com/dancingpea"
+  },
+  "plugins": [
+    {
+      "name": "wealth-dashboard",
+      "source": "./plugin",
+      "description": "Interview-driven setup of a private net worth and budget dashboard, plus a monthly check-in that keeps it current"
+    }
+  ]
+}
