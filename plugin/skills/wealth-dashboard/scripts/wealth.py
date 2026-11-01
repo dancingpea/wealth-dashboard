@@ -1,139 +1,85 @@
 #!/usr/bin/env python3
-"""wealth.py - data tool for the wealth-dashboard skill (Python 3.8+, stdlib only).
+"""wealth.py - data tool for the wealth-dashboard skill (Python 3.8+, standard library only).
 
-The dashboard HTML file IS the database: all data lives inside it in
-<script type="application/json" id="wealth-data">. Every command takes the
-dashboard file (.html) or a bare data file (.json) and writes changes back in
-place, re-rendering the page with the current template.
+All of a household's data lives in one JSON state file (wealth.json). Every command validates and saves it.
+From it, `datasets` writes the files the dashboard reads, `store` writes the dashboard's documents, and
+`standalone` writes a self-contained HTML page for when no Dashboard artifact is available.
 
-Commands (run any with -h for details):
-  new       create a new dashboard (empty, or --from a JSON file)
-  export    write the embedded data to a JSON file (or stdout)
-  import    replace the embedded data with a JSON file (validated first)
-  validate  check the data and print errors / warnings
-  settings  change settings (title, owner, currency, locale, language, goal...)
-  account   add or update an account
-  holding   add, update or remove a holding (position) inside an account
-  prices    update holding prices / quantities in bulk
-  snapshot  record (or update) the monthly snapshot of every account's value
-  history   import past snapshots from a CSV to backfill the chart
-  budget    record a month of income and expenses
-  inflation set the inflation index (CPI/HICP) or a flat annual rate
-  plan      print the update plan: what is automatic and what needs the user
-  summary   print a plain-text summary of the latest month
-  build     re-render the page with the current template (or switch target)
+Set up:    new, person, household, settings, account, holding, goal, map, note
+Monthly:   prices, snapshot, budget, history, plan, summary, validate
+Publish:   datasets, store, published, page, standalone
+Other:     migrate (from a v1 page), show
+
+Run any command with -h for its options.
 """
 
 import argparse
+import csv
 import datetime as dt
+import hashlib
 import json
 import math
 import os
 import re
 import sys
 
-SCHEMA = "wealth-dashboard/1"
+SCHEMA = "wealth-dashboard/2"
+HERE = os.path.dirname(os.path.abspath(__file__))
+ASSETS = os.path.normpath(os.path.join(HERE, "..", "assets"))
 GROUPS = ["invested", "cash", "retirement", "property", "other", "debt"]
 METHODS = ["connector", "holdings", "statement", "ask", "formula", "fixed"]
 FORMULAS = ["depreciation", "annuity", "linear", "growth"]
-LANGUAGES = ["en", "fr", "nl", "de", "es"]
-HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE = os.path.normpath(os.path.join(HERE, "..", "assets", "dashboard.html"))
-DATA_RE = re.compile(
-    r'(<script type="application/json" id="wealth-data">)(.*?)(</script>)', re.S
-)
-HEAD_MARK = "<!--wd:head-end-->"
+BUCKETS = ["Needs", "Wants", "Loan", "Saving"]
+GOAL_KINDS = ["budget", "milestone"]
+BUDGET_METRICS = ["needs", "wants", "savings"]
+MILESTONE_METRICS = ["net_worth", "invested", "total_assets", "cash", "debt", "cash_months"]
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}$")
+IBAN_RE = re.compile(r"\b[A-Z]{2}[0-9]{2}(?:\s?[A-Z0-9]{4}){3,7}\b")
+LONGNUM_RE = re.compile(r"\d{9,}")
+SEED_RE = re.compile(r"\b(?:[a-z]{3,8}\s+){11,23}[a-z]{3,8}\b")
 STALE_DAYS = 35
+SYMBOLS = {"EUR": "€", "USD": "$", "GBP": "£", "JPY": "¥", "CHF": "CHF ", "CAD": "C$", "AUD": "A$", "NZD": "NZ$", "SEK": "SEK ",
+           "NOK": "NOK ", "DKK": "DKK ", "PLN": "zł ", "CZK": "Kč ", "HUF": "Ft ", "INR": "₹", "SGD": "S$", "HKD": "HK$"}
+CATEGORY_DEFAULTS = {("invested", "equity"): "Shares and equity funds", ("invested", "bonds"): "Bonds", ("invested", "crypto"): "Crypto",
+                     ("invested", "gold"): "Precious metals", ("invested", "mixed"): "Mixed funds", ("invested", "cash"): "Broker cash",
+                     ("invested", None): "Investments", ("retirement", None): "Pensions", ("cash", None): "Cash",
+                     ("property", None): "Property", ("other", "vehicle"): "Vehicles", ("other", None): "Other assets",
+                     ("debt", "mortgage"): "Mortgage", ("debt", None): "Loans"}
+DEFAULT_PARAMS = {"owner": "Household", "range": "LTM", "view": "line", "debt": "net", "bperiod": "12M", "gunit": "pct",
+                  "ppen": "without", "pmetric": "total_assets", "preal": "nominal"}
 
 
 class UserError(Exception):
     pass
 
 
-# --------------------------------------------------------------------------- io
-
-def read_any(path):
-    """Return (data, kind) where kind is 'json', 'artifact' or 'file'."""
-    if not os.path.exists(path):
-        raise UserError("File not found: %s" % path)
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
-    if path.lower().endswith(".json"):
-        return json.loads(text), "json"
-    m = DATA_RE.search(text)
-    if not m:
-        raise UserError(
-            "No embedded wealth data found in %s. Is this a wealth dashboard page?" % path
-        )
-    data = json.loads(m.group(2))
-    kind = "file" if text.lstrip()[:15].lower().startswith("<!doctype") else "artifact"
-    return data, kind
-
-
-def embed_json(data):
-    text = json.dumps(data, ensure_ascii=False, indent=1)
-    # Make the JSON safe inside <script>: no '<', '>' or '&' can break out.
-    return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
-
-
-def html_escape(s):
-    return (
-        str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-    )
-
-
-def render(data, kind, template=None):
-    with open(template or TEMPLATE, encoding="utf-8") as f:
-        tpl = f.read()
-    title = data.get("settings", {}).get("title") or "Wealth dashboard"
-    lang = data.get("settings", {}).get("language") or "en"
-    page = tpl.replace("__WD_TITLE__", html_escape(title))
-    page = DATA_RE.sub(lambda m: m.group(1) + embed_json(data) + m.group(3), page, count=1)
-    if kind == "artifact":
-        return page
-    head, sep, body = page.partition(HEAD_MARK)
-    if not sep:
-        head, body = "", page
-    return (
-        "<!doctype html>\n<html lang=\"%s\">\n<head>\n<meta charset=\"utf-8\">\n"
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
-        "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n"
-        "<meta name=\"robots\" content=\"noindex, nofollow\">\n%s\n</head>\n<body>\n%s\n</body>\n</html>\n"
-        % (html_escape(lang), head.strip(), body.strip())
-    )
-
-
-def write_any(path, data, kind, template=None):
-    data.setdefault("settings", {})["updated"] = today()
-    errors, _ = validate(data)
-    if errors:
-        raise UserError("Not saved - the data has errors:\n  - " + "\n  - ".join(errors))
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        if kind == "json":
-            json.dump(data, f, ensure_ascii=False, indent=1)
-            f.write("\n")
-        else:
-            f.write(render(data, kind, template))
-    os.replace(tmp, path)
-
-
-# ------------------------------------------------------------------ helpers
+# ----------------------------------------------------------------------------- basics
 
 def today():
     return dt.date.today().isoformat()
 
 
 def parse_date(s, what="date"):
+    s = str(s).strip()
+    if re.match(r"^\d{4}$", s):
+        s += "-07-01"
+    elif re.match(r"^\d{4}-\d{2}$", s):
+        s += "-01"
     try:
-        return dt.date.fromisoformat(str(s)[:10])
+        return dt.date.fromisoformat(s[:10])
     except ValueError:
         raise UserError("Invalid %s '%s' (use YYYY-MM-DD)" % (what, s))
 
 
-def month_key(d):
-    return "%04d-%02d" % (d.year, d.month)
+def month_end(ym):
+    y, m = int(ym[:4]), int(ym[5:7])
+    nxt = dt.date(y + (m == 12), m % 12 + 1, 1)
+    return (nxt - dt.timedelta(days=1)).isoformat()
+
+
+def add_months(ym, n):
+    y, m = int(ym[:4]), int(ym[5:7]) - 1 + n
+    return "%04d-%02d" % (y + m // 12, m % 12 + 1)
 
 
 def months_between(start, end):
@@ -148,16 +94,21 @@ def years_between(start, end):
 
 
 def num(s, what="value"):
-    if isinstance(s, (int, float)):
-        return float(s)
-    t = str(s).strip().replace("_", "").replace(" ", "")
-    try:
-        v = float(t)
-    except ValueError:
-        raise UserError("Invalid number for %s: '%s'" % (what, s))
+    if isinstance(s, (int, float)) and not isinstance(s, bool):
+        v = float(s)
+    else:
+        t = str(s).strip().replace("_", "").replace(" ", "").replace(",", "")
+        try:
+            v = float(t)
+        except ValueError:
+            raise UserError("Invalid number for %s: '%s'" % (what, s))
     if math.isnan(v) or math.isinf(v):
         raise UserError("Invalid number for %s: '%s'" % (what, s))
     return v
+
+
+def r2(v):
+    return None if v is None else round(float(v), 2)
 
 
 def kv(item, what):
@@ -165,6 +116,11 @@ def kv(item, what):
         raise UserError("Expected KEY=VALUE for %s, got '%s'" % (what, item))
     k, v = item.split("=", 1)
     return k.strip(), v.strip()
+
+
+def slug(s):
+    s = re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
+    return (s or "x")[:48]
 
 
 def parse_fx(items):
@@ -176,8 +132,10 @@ def parse_fx(items):
 
 
 def to_base(raw, base, fx, what):
-    """'1234.5' -> 1234.5 ; '1200USD' -> 1200 * fx['USD']"""
-    t = str(raw).strip().replace(" ", "").replace("_", "")
+    """'1234.5' -> 1234.5 ; '1200USD' -> 1200 * fx['USD'] (base per 1 USD)."""
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        return float(raw)
+    t = str(raw).strip().replace(" ", "").replace("_", "").replace(",", "")
     m = re.match(r"^(-?[0-9.]+)([A-Za-z]{3})?$", t)
     if not m:
         raise UserError("Invalid amount for %s: '%s' (use 1234.56 or 1234.56USD)" % (what, raw))
@@ -190,39 +148,70 @@ def to_base(raw, base, fx, what):
     return v
 
 
-def r2(v):
-    return None if v is None else round(float(v), 2)
-
-
 def money(v, cur=""):
     if v is None:
         return "-"
-    s = "{:,.0f}".format(v)
-    return (s + " " + cur).strip()
+    return ("{:,.0f}".format(v) + " " + cur).strip()
 
 
 def pct(v):
     return "-" if v is None else "{:+.1f}%".format(v * 100)
 
 
-def new_data(currency="EUR", title="Wealth dashboard", owner="", language="en", locale=""):
+# ----------------------------------------------------------------------------- state
+
+def new_state(currency="EUR", title="Wealth dashboard", locale="en-GB"):
     return {
         "schema": SCHEMA,
         "settings": {
-            "title": title,
-            "owner": owner,
-            "currency": currency.upper(),
-            "language": language,
-            "locale": locale or {"en": "en-GB", "fr": "fr-FR", "nl": "nl-NL", "de": "de-DE", "es": "es-ES"}.get(language, "en-GB"),
-            "checkin_day": 1,
-            "created": today(),
-            "updated": today(),
+            "title": title, "currency": currency.upper(), "locale": locale,
+            "people": [], "children_under_14": 0, "children_14_plus": 0, "joint_split": {},
+            "compare_countries": [], "fx": {"EUR": 1.0} if currency.upper() == "EUR" else {},
+            "projection": {"years": 30, "return_low": 0.03, "return_mid": 0.06, "return_high": 0.09, "inflation": 0.02, "monthly_saving": None},
+            "checkin_day": 1, "notes": [], "created": today(), "updated": today(),
         },
-        "accounts": [],
-        "holdings": [],
-        "snapshots": [],
-        "budget": {"months": []},
+        "accounts": [], "holdings": [], "snapshots": [], "prices": [],
+        "budget": {"months": []}, "budget_map": {}, "goals": [], "published": {},
     }
+
+
+def load(path):
+    if not os.path.exists(path):
+        raise UserError("File not found: %s (create it with: wealth.py new %s)" % (path, path))
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if data.get("schema") != SCHEMA:
+        raise UserError("%s is not a wealth-dashboard/2 state file. A v1 dashboard page converts with: wealth.py migrate <page> %s" % (path, path))
+    return data
+
+
+def save(path, data):
+    data["settings"]["updated"] = today()
+    errors, _ = validate(data)
+    if errors:
+        raise UserError("Not saved - the data has errors:\n  - " + "\n  - ".join(errors))
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+    os.replace(tmp, path)
+
+
+def people(data):
+    return data["settings"].get("people", [])
+
+
+def person_by_id(data):
+    return {p["id"]: p for p in people(data)}
+
+
+def owner_name(data, owner):
+    if owner in (None, "", "joint"):
+        if len(people(data)) <= 1:
+            return people(data)[0]["name"] if people(data) else "You"
+        return "Joint"
+    p = person_by_id(data).get(owner)
+    return p["name"] if p else owner
 
 
 def accounts_by_id(data):
@@ -245,6 +234,22 @@ def holding_value(h, base):
     return float(q) * float(p) * float(fx)
 
 
+def category_of(acc):
+    if acc.get("category"):
+        return acc["category"]
+    g, c = acc.get("group"), acc.get("class")
+    if g == "debt" and (acc.get("formula") or {}).get("type") == "annuity" and "mortgage" in acc.get("name", "").lower():
+        c = "mortgage"
+    return CATEGORY_DEFAULTS.get((g, c)) or CATEGORY_DEFAULTS.get((g, None)) or "Other assets"
+
+
+def is_open(acc, on):
+    c = acc.get("closed")
+    return not c or parse_date(c, "closed") > on
+
+
+# ----------------------------------------------------------------------------- formulas
+
 def formula_value(f, on):
     t = f.get("type")
     if t == "depreciation":
@@ -253,89 +258,118 @@ def formula_value(f, on):
         if f.get("per_km") and f.get("km") is not None:
             v -= float(f["per_km"]) * max(float(f["km"]) - float(f.get("km_at_purchase", 0)), 0)
         return max(v, float(f.get("floor", 0)))
-    if t == "annuity":
-        start = parse_date(f["start"], "start")
-        p, r, n_total = float(f["principal"]), float(f["annual_rate"]) / 12, int(round(float(f["years"]) * 12))
-        n = min(months_between(start, on), n_total)
-        if r == 0:
-            return p * (1 - n / n_total)
-        pmt = p * r / (1 - (1 + r) ** -n_total)
-        return max(p * (1 + r) ** n - pmt * ((1 + r) ** n - 1) / r, 0.0)
-    if t == "linear":
-        start = parse_date(f["start"], "start")
-        n_total = int(round(float(f["years"]) * 12))
-        n = min(months_between(start, on), n_total)
-        return float(f["principal"]) * (1 - n / n_total)
+    if t in ("annuity", "linear"):
+        sched = loan_schedule(f)
+        ym = "%04d-%02d" % (on.year, on.month)
+        if not sched or ym < sched[0]["month"]:
+            return float(f["principal"])
+        bal = float(f["principal"])
+        for r in sched:
+            if r["month"] <= ym:
+                bal = r["balance"]
+        return max(bal, 0.0)
     if t == "growth":
         start = parse_date(f["date"], "date")
         return float(f["value"]) * (1 + float(f.get("annual_rate", 0))) ** years_between(start, on)
     raise UserError("Unknown formula type '%s'" % t)
 
 
+def loan_schedule(f):
+    """Monthly rows {month, balance, payment, interest, principal} from the first payment month."""
+    p = float(f["principal"])
+    r = float(f.get("annual_rate", 0)) / 12
+    n = int(round(float(f["years"]) * 12))
+    start = parse_date(f["start"], "start")
+    first = "%04d-%02d" % (start.year, start.month)
+    rows, bal = [], p
+    pmt = (p * r / (1 - (1 + r) ** -n)) if (f.get("type") == "annuity" and r > 0) else None
+    for i in range(n):
+        interest = bal * r
+        if f.get("type") == "annuity":
+            principal = (pmt - interest) if pmt is not None else p / n
+            payment = pmt if pmt is not None else p / n
+        else:
+            principal = p / n
+            payment = principal + interest
+        principal = min(principal, bal)
+        bal = max(bal - principal, 0.0)
+        rows.append({"month": add_months(first, i), "balance": bal, "payment": payment, "interest": interest, "principal": principal})
+    return rows
+
+
 def computed_value(data, acc, on):
-    """Value an account can produce by itself (holdings or formula), else None."""
     base = data["settings"]["currency"]
     if acc.get("method") == "formula" and acc.get("formula"):
         return formula_value(acc["formula"], on)
     hs = account_holdings(data, acc["id"])
     if hs and acc.get("method") in ("holdings", "connector"):
         vals = [holding_value(h, base) for h in hs]
-        if any(v is None for v in vals):
-            missing = [h.get("id") for h, v in zip(hs, vals) if v is None]
-            raise UserError("Holdings without price/quantity/fx in '%s': %s" % (acc["id"], ", ".join(missing)))
+        missing = [h.get("id") for h, v in zip(hs, vals) if v is None]
+        if missing:
+            raise UserError("Holdings without price, quantity or exchange rate in '%s': %s" % (acc["id"], ", ".join(missing)))
         return sum(vals) + float(acc.get("cash", 0) or 0)
     return None
 
 
-def is_open(acc, on):
-    c = acc.get("closed")
-    return not c or parse_date(c, "closed") > on
+def signed(acc, v):
+    return -abs(v) if acc.get("group") == "debt" else v
 
 
 def totals(data, snap):
     accs = accounts_by_id(data)
     out = {g: 0.0 for g in GROUPS}
     for k, v in snap.get("values", {}).items():
-        g = accs.get(k, {}).get("group", "other")
-        out[g] += float(v)
-    assets = sum(out[g] for g in GROUPS if g != "debt")
-    out["assets"] = assets
-    out["net"] = assets - out["debt"]
+        out[accs.get(k, {}).get("group", "other")] += float(v)
+    out["assets"] = sum(out[g] for g in GROUPS if g != "debt")
+    out["net"] = out["assets"] - out["debt"]
     return out
 
 
-# --------------------------------------------------------------- validation
+# ----------------------------------------------------------------------------- validation
 
-IBAN_RE = re.compile(r"\b[A-Z]{2}[0-9]{2}(?:\s?[A-Z0-9]{4}){3,7}\b")
-LONGNUM_RE = re.compile(r"\d{9,}")
+def check_private(where, text, warnings):
+    t = str(text or "")
+    if IBAN_RE.search(t) or LONGNUM_RE.search(t):
+        warnings.append("%s looks like it contains an account or card number: remove it" % where)
+    if SEED_RE.search(t.lower()):
+        warnings.append("%s looks like a wallet seed phrase: remove it and treat the wallet as compromised" % where)
 
 
 def validate(data):
     errors, warnings = [], []
-    if not isinstance(data, dict):
-        return ["Top level must be an object"], []
-    if data.get("schema") != SCHEMA:
-        warnings.append("schema is '%s', expected '%s'" % (data.get("schema"), SCHEMA))
+    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+        return ["Not a %s state" % SCHEMA], []
     s = data.get("settings") or {}
-    if not re.match(r"^[A-Z]{3}$", str(s.get("currency", ""))):
+    base = str(s.get("currency", ""))
+    if not re.match(r"^[A-Z]{3}$", base):
         errors.append("settings.currency must be a 3-letter code like EUR")
-    if s.get("language") and s["language"] not in LANGUAGES:
-        warnings.append("settings.language '%s' has no built-in labels; English is used unless settings.labels overrides" % s["language"])
-    goal = s.get("goal")
-    if goal is not None:
-        if not isinstance(goal, dict) or "net_worth" not in goal:
-            errors.append("settings.goal must be {\"net_worth\": number, \"by\": \"YYYY-MM-DD\"}")
-    infl = s.get("inflation")
-    if infl:
-        if "index" in infl:
-            for k, v in (infl.get("index") or {}).items():
-                if not re.match(r"^\d{4}-\d{2}$", k) or not isinstance(v, (int, float)) or v <= 0:
-                    errors.append("settings.inflation.index entry %s=%s is invalid (use YYYY-MM: positive number)" % (k, v))
-        elif "annual_rate" in infl:
-            if not isinstance(infl["annual_rate"], (int, float)) or not -0.5 < infl["annual_rate"] < 1:
-                errors.append("settings.inflation.annual_rate must be a decimal like 0.02")
-        else:
-            errors.append("settings.inflation needs 'index' or 'annual_rate'")
+    pids, pnames = set(), set()
+    for p in s.get("people", []):
+        if not p.get("id") or not ID_RE.match(p["id"]):
+            errors.append("person id '%s' must be lowercase letters, digits, - or _" % p.get("id"))
+        if not p.get("name"):
+            errors.append("person '%s' has no name" % p.get("id"))
+        if p.get("name") in ("Household", "Joint", "You"):
+            errors.append("person name '%s' is reserved: pick another" % p.get("name"))
+        if p.get("id") in pids or p.get("name") in pnames:
+            errors.append("duplicate person '%s'" % p.get("name"))
+        pids.add(p.get("id"))
+        pnames.add(p.get("name"))
+        if p.get("birth_date"):
+            try:
+                parse_date(p["birth_date"])
+            except UserError as e:
+                errors.append(str(e))
+    for k, v in (s.get("joint_split") or {}).items():
+        if k not in pids:
+            errors.append("joint_split names unknown person '%s'" % k)
+    js = s.get("joint_split") or {}
+    if js and abs(sum(float(v) for v in js.values()) - 1) > 0.01:
+        warnings.append("joint_split shares add up to %.2f, not 1" % sum(float(v) for v in js.values()))
+    for k in ("return_low", "return_mid", "return_high", "inflation"):
+        v = (s.get("projection") or {}).get(k)
+        if v is not None and not -0.5 < float(v) < 1:
+            errors.append("projection.%s must be a decimal like 0.05" % k)
 
     ids = set()
     for a in data.get("accounts", []):
@@ -351,6 +385,8 @@ def validate(data):
             errors.append("account '%s': group must be one of %s" % (aid, ", ".join(GROUPS)))
         if a.get("method") not in METHODS:
             errors.append("account '%s': method must be one of %s" % (aid, ", ".join(METHODS)))
+        if a.get("owner") not in (None, "", "joint") and a.get("owner") not in pids:
+            errors.append("account '%s': owner '%s' is not a person (use a person id or joint)" % (aid, a.get("owner")))
         if a.get("method") == "formula":
             f = a.get("formula") or {}
             if f.get("type") not in FORMULAS:
@@ -358,12 +394,13 @@ def validate(data):
             else:
                 try:
                     formula_value(f, dt.date.today())
-                except (KeyError, ValueError, TypeError, UserError) as e:
+                except (KeyError, ValueError, TypeError, ZeroDivisionError, UserError) as e:
                     errors.append("account '%s': formula is incomplete (%s)" % (aid, e))
+        for w in (a.get("regions") or {}).values():
+            if not isinstance(w, (int, float)):
+                errors.append("account '%s': region weights must be numbers" % aid)
         for field in ("name", "institution", "source", "note"):
-            val = str(a.get(field, "") or "")
-            if IBAN_RE.search(val) or LONGNUM_RE.search(val):
-                warnings.append("account '%s' %s looks like it contains an account number - remove it" % (aid, field))
+            check_private("account '%s' %s" % (aid, field), a.get(field), warnings)
 
     hids = set()
     for h in data.get("holdings", []):
@@ -378,12 +415,12 @@ def validate(data):
         for f in ("quantity", "price", "fx", "cost"):
             if h.get(f) is not None and not isinstance(h.get(f), (int, float)):
                 errors.append("holding '%s': %s must be a number" % (hid, f))
-        cur = (h.get("currency") or s.get("currency", "")).upper()
-        if cur != str(s.get("currency", "")).upper() and h.get("price") is not None and h.get("fx") is None:
-            warnings.append("holding '%s' is priced in %s but has no fx rate" % (hid, cur))
+        cur = (h.get("currency") or base).upper()
+        if cur != base and h.get("price") is not None and h.get("fx") is None:
+            warnings.append("holding '%s' is priced in %s but has no exchange rate" % (hid, cur))
+        check_private("holding '%s' note" % hid, h.get("note"), warnings)
 
-    seen_dates = set()
-    prev = None
+    prev, seen = None, set()
     for sn in data.get("snapshots", []):
         d = sn.get("date")
         try:
@@ -391,9 +428,9 @@ def validate(data):
         except UserError as e:
             errors.append(str(e))
             continue
-        if d in seen_dates:
+        if d in seen:
             errors.append("duplicate snapshot date %s" % d)
-        seen_dates.add(d)
+        seen.add(d)
         if prev and dd < prev:
             errors.append("snapshots must be sorted by date (%s after %s)" % (d, prev))
         prev = dd
@@ -402,14 +439,9 @@ def validate(data):
                 warnings.append("snapshot %s has a value for unknown account '%s'" % (d, k))
             if not isinstance(v, (int, float)):
                 errors.append("snapshot %s: value for '%s' must be a number" % (d, k))
-        if sn.get("contributions") is not None and not isinstance(sn["contributions"], (int, float)):
-            errors.append("snapshot %s: contributions must be a number" % d)
-    accs = accounts_by_id(data)
-    for sn in data.get("snapshots", [])[-1:]:
-        for k, v in (sn.get("values") or {}).items():
-            if accs.get(k, {}).get("group") == "debt" and isinstance(v, (int, float)) and v < 0:
-                warnings.append("debt '%s' is negative in the latest snapshot; store the amount owed as a positive number" % k)
-
+        c = sn.get("contributions")
+        if c is not None and not isinstance(c, (int, float, dict)):
+            errors.append("snapshot %s: contributions must be a number or {account: amount}" % d)
     months = set()
     for m in (data.get("budget") or {}).get("months", []):
         k = m.get("month", "")
@@ -422,10 +454,28 @@ def validate(data):
             for c, v in (m.get(part) or {}).items():
                 if not isinstance(v, (int, float)):
                     errors.append("budget %s %s '%s' must be a number" % (k, part, c))
+    for c, b in (data.get("budget_map") or {}).items():
+        if b not in BUCKETS:
+            errors.append("budget_map '%s' must be one of %s" % (c, ", ".join(BUCKETS)))
+    gids = set()
+    for g in data.get("goals", []):
+        if g.get("id") in gids:
+            errors.append("duplicate goal id '%s'" % g.get("id"))
+        gids.add(g.get("id"))
+        if g.get("kind") not in GOAL_KINDS:
+            errors.append("goal '%s': kind must be budget or milestone" % g.get("id"))
+        elif g["kind"] == "budget" and g.get("metric") not in BUDGET_METRICS:
+            errors.append("goal '%s': budget metric must be one of %s" % (g.get("id"), ", ".join(BUDGET_METRICS)))
+        elif g["kind"] == "milestone" and g.get("metric") not in MILESTONE_METRICS:
+            errors.append("goal '%s': milestone metric must be one of %s" % (g.get("id"), ", ".join(MILESTONE_METRICS)))
+        if g.get("view") not in (None, "", "Household") and g.get("view") not in pnames:
+            errors.append("goal '%s': view must be Household or a person's name" % g.get("id"))
+    for n in s.get("notes", []):
+        check_private("a note", n, warnings)
     return errors, warnings
 
 
-# ------------------------------------------------------------------ commands
+# ----------------------------------------------------------------------------- set-up commands
 
 def cmd_new(a):
     if os.path.exists(a.file) and not a.force:
@@ -434,78 +484,124 @@ def cmd_new(a):
         with open(a.from_json, encoding="utf-8") as f:
             data = json.load(f)
     else:
-        data = new_data(a.currency, a.title, a.owner or "", a.language, a.locale or "")
-    kind = "json" if a.file.lower().endswith(".json") else a.target
-    write_any(a.file, data, kind)
-    print("Created %s (%s)" % (a.file, kind))
+        data = new_state(a.currency, a.title, a.locale)
+    save(a.file, data)
+    print("Created %s" % a.file)
 
 
-def cmd_export(a):
-    data, _ = read_any(a.file)
-    text = json.dumps(data, ensure_ascii=False, indent=1)
-    if a.out:
-        with open(a.out, "w", encoding="utf-8") as f:
-            f.write(text + "\n")
-        print("Wrote %s" % a.out)
-    else:
-        print(text)
+def cmd_person(a):
+    data = load(a.file)
+    ps = data["settings"].setdefault("people", [])
+    p = next((x for x in ps if x["id"] == a.id), None)
+    if a.remove:
+        if not p:
+            raise UserError("No person '%s'" % a.id)
+        if any(x.get("owner") == a.id for x in data["accounts"]):
+            raise UserError("'%s' still owns accounts: move them first (account --owner)" % a.id)
+        ps.remove(p)
+        data["settings"].get("joint_split", {}).pop(a.id, None)
+        save(a.file, data)
+        print("Removed %s" % a.id)
+        return
+    created = p is None
+    if created:
+        if not a.name:
+            raise UserError("A new person needs --name")
+        p = {"id": a.id}
+        ps.append(p)
+    if a.name:
+        old = p.get("name")
+        p["name"] = a.name
+        if old and old != a.name:
+            for g in data.get("goals", []):
+                if g.get("view") == old:
+                    g["view"] = a.name
+    if a.birth is not None:
+        p["birth_date"] = parse_date(a.birth, "birth").isoformat() if a.birth else None
+    if a.gross is not None:
+        p["gross_income"] = num(a.gross, "gross") if a.gross != "" else None
+    save(a.file, data)
+    print("%s %s" % ("Added" if created else "Updated", p["name"]))
 
 
-def cmd_import(a):
-    _, kind = read_any(a.file)
-    with open(a.json_file, encoding="utf-8") as f:
-        data = json.load(f)
-    write_any(a.file, data, kind)
-    print("Imported %s into %s" % (a.json_file, a.file))
+def cmd_household(a):
+    data = load(a.file)
+    s = data["settings"]
+    if a.children_under_14 is not None:
+        s["children_under_14"] = int(a.children_under_14)
+    if a.children_14_plus is not None:
+        s["children_14_plus"] = int(a.children_14_plus)
+    if a.joint_split is not None:
+        js = {}
+        for item in a.joint_split.split(","):
+            if item.strip():
+                k, v = kv(item, "--joint-split")
+                js[k] = num(v, k)
+        s["joint_split"] = js
+    save(a.file, data)
+    print("Household updated")
 
 
-def cmd_validate(a):
-    data, _ = read_any(a.file)
-    errors, warnings = validate(data)
-    for e in errors:
-        print("ERROR   " + e)
-    for w in warnings:
-        print("WARNING " + w)
-    if not errors and not warnings:
-        print("OK - %d accounts, %d holdings, %d snapshots, %d budget months" % (
-            len(data.get("accounts", [])), len(data.get("holdings", [])),
-            len(data.get("snapshots", [])), len((data.get("budget") or {}).get("months", []))))
-    return 1 if errors else 0
+SETTABLE = {"title": str, "currency": str, "locale": str, "checkin_day": int, "dashboard_url": str, "schedule": str,
+            "compare_countries": "list", "demo": "bool", "backup": str}
 
 
 def cmd_settings(a):
-    data, kind = read_any(a.file)
-    s = data.setdefault("settings", {})
+    data = load(a.file)
+    s = data["settings"]
     for item in a.set or []:
         k, v = kv(item, "--set")
-        if k in ("checkin_day",):
-            s[k] = int(num(v, k))
-        elif k == "currency":
-            s[k] = v.upper()
-        elif k == "goal_net_worth":
-            s.setdefault("goal", {})["net_worth"] = num(v, k)
-        elif k == "goal_by":
-            parse_date(v, "goal_by")
-            s.setdefault("goal", {})["by"] = v
-        elif k == "goal":
-            if v.lower() in ("", "none", "null"):
-                s.pop("goal", None)
+        if k.startswith("fx."):
+            s.setdefault("fx", {})[k[3:].upper()] = num(v, k)
+        elif k.startswith("projection."):
+            key = k.split(".", 1)[1]
+            if key not in ("years", "return_low", "return_mid", "return_high", "inflation", "monthly_saving"):
+                raise UserError("Unknown projection setting '%s'" % key)
+            s.setdefault("projection", {})[key] = None if v.lower() in ("", "none", "auto") else (int(num(v, k)) if key == "years" else num(v, k))
+        elif k in SETTABLE:
+            t = SETTABLE[k]
+            if t == "list":
+                s[k] = [x.strip().upper() for x in v.split(",") if x.strip()]
+            elif t == "bool":
+                s[k] = v.lower() in ("1", "true", "yes")
+            elif t is int:
+                s[k] = int(num(v, k))
             else:
-                raise UserError("Use goal_net_worth=... and goal_by=YYYY-MM-DD, or goal=none")
-        elif k.startswith("label."):
-            s.setdefault("labels", {})[k[6:]] = v
-        elif k.startswith("group_label."):
-            s.setdefault("group_labels", {})[k[12:]] = v
-        elif k in ("title", "owner", "language", "locale", "dashboard_url", "schedule", "backup"):
-            s[k] = v
+                s[k] = v.upper() if k == "currency" else v
         else:
             raise UserError("Unknown setting '%s'" % k)
-    write_any(a.file, data, kind)
+    save(a.file, data)
     print("Settings updated")
 
 
+def cmd_note(a):
+    data = load(a.file)
+    notes = data["settings"].setdefault("notes", [])
+    if a.clear:
+        notes.clear()
+    for t in a.add or []:
+        if t not in notes:
+            notes.append(t)
+    for t in a.remove or []:
+        if t in notes:
+            notes.remove(t)
+    save(a.file, data)
+    print("%d notes" % len(notes))
+
+
+def parse_regions(items):
+    out = {}
+    for item in items or []:
+        k, v = kv(item, "--region")
+        out[k] = num(v, "region " + k)
+    tot = sum(out.values())
+    if out and abs(tot - 1) > 0.02 and abs(tot - 100) < 2:
+        out = {k: v / 100 for k, v in out.items()}
+    return out
+
+
 def cmd_account(a):
-    data, kind = read_any(a.file)
+    data = load(a.file)
     accs = data.setdefault("accounts", [])
     acc = next((x for x in accs if x["id"] == a.id), None)
     if a.remove:
@@ -515,14 +611,14 @@ def cmd_account(a):
             raise UserError("'%s' has history. Close it instead: --closed YYYY-MM-DD" % a.id)
         accs.remove(acc)
         data["holdings"] = [h for h in data.get("holdings", []) if h.get("account") != a.id]
-        write_any(a.file, data, kind)
+        save(a.file, data)
         print("Removed account %s" % a.id)
         return
     created = acc is None
     if created:
         acc = {"id": a.id}
         accs.append(acc)
-    for field in ("name", "group", "method", "institution", "source", "note", "closed"):
+    for field in ("name", "group", "method", "institution", "source", "note", "closed", "owner", "category"):
         v = getattr(a, field)
         if v is not None:
             if v == "":
@@ -533,32 +629,38 @@ def cmd_account(a):
         acc["class"] = a.asset_class
     if a.cash is not None:
         acc["cash"] = num(a.cash, "cash")
+    if a.monthly_contribution is not None:
+        acc["monthly_contribution"] = num(a.monthly_contribution, "monthly contribution")
     if a.formula is not None:
         acc["formula"] = json.loads(a.formula)
         acc.setdefault("method", "formula")
     for item in a.formula_set or []:
         k, v = kv(item, "--formula-set")
         acc.setdefault("formula", {})[k] = v if k in ("type", "start", "date", "purchase_date") else num(v, k)
+    if a.region:
+        acc["regions"] = parse_regions(a.region)
     acc.setdefault("method", "ask")
-    write_any(a.file, data, kind)
+    if acc.get("owner") is None:
+        acc["owner"] = people(data)[0]["id"] if len(people(data)) == 1 else "joint"
+    save(a.file, data)
     print("%s account %s" % ("Added" if created else "Updated", a.id))
 
 
 def cmd_holding(a):
-    data, kind = read_any(a.file)
+    data = load(a.file)
     hs = data.setdefault("holdings", [])
     h = next((x for x in hs if x["id"] == a.id), None)
     if a.remove:
         if not h:
             raise UserError("No holding '%s'" % a.id)
         hs.remove(h)
-        write_any(a.file, data, kind)
+        save(a.file, data)
         print("Removed holding %s" % a.id)
         return
     created = h is None
     if created:
         if not a.account:
-            raise UserError("New holding needs --account")
+            raise UserError("A new holding needs --account")
         h = {"id": a.id}
         hs.append(h)
     for field in ("account", "name", "ticker", "isin", "address", "unit", "note", "price_source"):
@@ -579,10 +681,100 @@ def cmd_holding(a):
                 h.pop(field, None)
             else:
                 h[field] = num(v, field)
-    if a.price is not None:
-        h["price_date"] = a.date or today()
-    write_any(a.file, data, kind)
+    if a.region:
+        h["regions"] = parse_regions(a.region)
+    if a.price is not None and a.price != "":
+        h["price_date"] = (a.date or today())
+        record_price(data, h, h["price_date"])
+    save(a.file, data)
     print("%s holding %s" % ("Added" if created else "Updated", a.id))
+
+
+def cmd_goal(a):
+    data = load(a.file)
+    goals = data.setdefault("goals", [])
+    if a.defaults:
+        have = {g["id"] for g in goals}
+        for g in default_goals():
+            if g["id"] not in have:
+                goals.append(g)
+        save(a.file, data)
+        print("Default goals added (50/30/20 budget, 3 months of spending in cash)")
+        return
+    if not a.id:
+        raise UserError("--id is required")
+    g = next((x for x in goals if x["id"] == a.id), None)
+    if a.remove:
+        if not g:
+            raise UserError("No goal '%s'" % a.id)
+        goals.remove(g)
+        save(a.file, data)
+        print("Removed goal %s" % a.id)
+        return
+    created = g is None
+    if created:
+        g = {"id": a.id, "view": "Household"}
+        goals.append(g)
+    for field in ("kind", "label", "view", "metric", "unit", "note"):
+        v = getattr(a, field)
+        if v is not None:
+            g[field] = v
+    if a.target is not None:
+        g["target"] = num(a.target, "target")
+    if a.start is not None:
+        g["from"] = a.start[:7] if a.start else ""
+    if a.deadline is not None:
+        g["deadline"] = parse_date(a.deadline, "deadline").isoformat() if a.deadline else ""
+    g.setdefault("label", a.id.replace("-", " ").capitalize())
+    if g.get("kind") == "milestone" and not g.get("unit"):
+        g["unit"] = "months" if g.get("metric") == "cash_months" else "amount"
+    if g.get("kind") == "budget" and not g.get("unit"):
+        g["unit"] = "pct"
+    if g.get("unit") == "eur":
+        g["unit"] = "amount"
+    save(a.file, data)
+    print("%s goal %s" % ("Added" if created else "Updated", a.id))
+
+
+def default_goals():
+    return [
+        {"id": "needs", "kind": "budget", "label": "Needs", "view": "Household", "metric": "needs", "unit": "pct", "target": 50, "from": "", "deadline": "",
+         "note": "50/30/20 rule: essentials at most half of income"},
+        {"id": "wants", "kind": "budget", "label": "Wants", "view": "Household", "metric": "wants", "unit": "pct", "target": 30, "from": "", "deadline": "",
+         "note": "50/30/20 rule: everything you choose to spend at most 30%"},
+        {"id": "savings", "kind": "budget", "label": "Savings", "view": "Household", "metric": "savings", "unit": "pct", "target": 20, "from": "", "deadline": "",
+         "note": "50/30/20 rule: keep at least 20% of income"},
+        {"id": "emergency-fund", "kind": "milestone", "label": "Emergency fund", "view": "Household", "metric": "cash_months", "unit": "months", "target": 3,
+         "from": "", "deadline": "", "note": "Cash covering at least 3 months of spending"},
+    ]
+
+
+def cmd_map(a):
+    data = load(a.file)
+    m = data.setdefault("budget_map", {})
+    for item in a.set or []:
+        k, v = kv(item, "--set")
+        b = v.capitalize()
+        if b not in BUCKETS:
+            raise UserError("'%s' must map to one of %s" % (k, ", ".join(BUCKETS)))
+        m[k] = b
+    for k in a.remove or []:
+        m.pop(k, None)
+    save(a.file, data)
+    unmapped = sorted({c for mo in data["budget"]["months"] for c in mo.get("expenses", {})} - set(m))
+    print("Map has %d categories%s" % (len(m), ("; not mapped yet (count as Wants): " + ", ".join(unmapped)) if unmapped else ""))
+
+
+# ----------------------------------------------------------------------------- monthly commands
+
+def record_price(data, h, date):
+    if h.get("price") is None:
+        return
+    hist = data.setdefault("prices", [])
+    ym = str(date)[:7]
+    hist[:] = [p for p in hist if not (p["holding"] == h["id"] and p["date"][:7] == ym)]
+    hist.append({"holding": h["id"], "date": str(date)[:10], "price": h["price"]})
+    hist.sort(key=lambda p: (p["holding"], p["date"]))
 
 
 def find_holding(data, key):
@@ -594,12 +786,11 @@ def find_holding(data, key):
 
 
 def cmd_prices(a):
-    data, kind = read_any(a.file)
+    data = load(a.file)
     fx = parse_fx(a.fx)
     base = data["settings"]["currency"]
-    d = a.date or today()
-    parse_date(d)
-    changed = []
+    d = parse_date(a.date or today()).isoformat()
+    n = 0
     for item in a.set or []:
         k, v = kv(item, "--set")
         h = find_holding(data, k)
@@ -607,36 +798,62 @@ def cmd_prices(a):
         h["price_date"] = d
         if a.source:
             h["price_source"] = a.source
-        changed.append(h["id"])
+        n += 1
     for item in a.qty or []:
         k, v = kv(item, "--qty")
-        h = find_holding(data, k)
-        h["quantity"] = num(v, "quantity of " + k)
-        changed.append(h["id"])
+        find_holding(data, k)["quantity"] = num(v, "quantity of " + k)
+        n += 1
     for h in data.get("holdings", []):
         cur = (h.get("currency") or base).upper()
         if cur != base and cur in fx:
             h["fx"] = fx[cur]
-    write_any(a.file, data, kind)
-    print("Updated %d holding fields%s" % (len(changed), (" and fx " + ", ".join(sorted(fx))) if fx else ""))
+    for cur, rate in fx.items():
+        data["settings"].setdefault("fx", {})[cur] = rate
+    for h in data.get("holdings", []):
+        if h.get("price_date") == d:
+            record_price(data, h, d)
+    save(a.file, data)
+    print("Updated %d holding fields%s" % (n, (" and exchange rates " + ", ".join(sorted(fx))) if fx else ""))
 
 
-def build_snapshot(data, on, explicit, history=False, keep_month=False, allow_missing=False,
-                   contrib=None, note=None, fx=None):
-    """Create or update the snapshot for date `on`. Returns (snap, carried, missing)."""
+def contributions_by_account(data, prev, snap):
+    """Money moved into each account between two snapshots (positive = in)."""
+    accs = accounts_by_id(data)
+    out = {}
+    c = snap.get("contributions")
+    if isinstance(c, dict):
+        for k, v in c.items():
+            out[k] = out.get(k, 0.0) + float(v)
+    elif isinstance(c, (int, float)) and c:
+        inv = [k for k, v in snap["values"].items() if accs.get(k, {}).get("group") == "invested" and v > 0]
+        tot = sum(snap["values"][k] for k in inv)
+        for k in inv:
+            out[k] = out.get(k, 0.0) + float(c) * (snap["values"][k] / tot if tot else 1 / len(inv))
+    if prev:
+        snaps = data.get("snapshots", [])
+        for k, acc in accs.items():
+            if not acc.get("monthly_contribution") or k in out or k not in snap["values"] or k not in prev.get("values", {}):
+                continue
+            if k in snap.get("carried", []):
+                continue  # value not updated: the money paid in shows up when it is
+            if k in prev.get("carried", []):
+                real = [x for x in snaps if x["date"] < snap["date"] and k in x.get("values", {}) and k not in x.get("carried", [])]
+                since = real[-1]["date"] if real else prev["date"]
+            else:
+                since = prev["date"]
+            months = months_between(parse_date(since), parse_date(snap["date"])) or 1
+            out[k] = float(acc["monthly_contribution"]) * months
+    return out
+
+
+def build_snapshot(data, on, explicit, history=False, keep_month=False, allow_missing=False, contrib=None, gifts=None, note=None, fx=None):
     base = data["settings"]["currency"]
     date_s = on.isoformat()
     accs = accounts_by_id(data)
     snaps = data.setdefault("snapshots", [])
-    same = None
-    if not keep_month:
-        same = next((s for s in snaps if s["date"][:7] == date_s[:7]), None)
-    if history:
-        same_exact = same
-        same = None
-    earlier = [s for s in snaps if s["date"] <= date_s and s is not same and not (history and s is same_exact)]
+    same = None if keep_month else next((s for s in snaps if s["date"][:7] == date_s[:7]), None)
+    earlier = [s for s in snaps if s["date"] <= date_s and s is not same]
     prev = earlier[-1] if earlier else None
-
     values, carried, missing = {}, [], []
     for aid, acc in accs.items():
         if not is_open(acc, on):
@@ -645,7 +862,6 @@ def build_snapshot(data, on, explicit, history=False, keep_month=False, allow_mi
             values[aid] = explicit[aid]
             continue
         if history:
-            # Past dates: only formulas know their old value; holdings use today's prices.
             if acc.get("method") == "formula" and acc.get("formula"):
                 values[aid] = formula_value(acc["formula"], on)
             continue
@@ -664,44 +880,65 @@ def build_snapshot(data, on, explicit, history=False, keep_month=False, allow_mi
                 carried.append(aid)
             continue
         missing.append(aid)
-
     if missing and not allow_missing:
-        raise UserError(
-            "No value for: %s. Pass --set ID=VALUE, or --allow-missing to leave them out." % ", ".join(missing)
-        )
+        raise UserError("No value for: %s. Pass --set ID=VALUE, or --allow-missing to leave them out." % ", ".join(missing))
     snap = {"date": date_s, "values": {k: r2(v) for k, v in values.items()}}
     if carried:
         snap["carried"] = sorted(carried)
     if contrib is None and same is not None:
         contrib = same.get("contributions")
     if contrib is not None:
-        snap["contributions"] = r2(to_base(contrib, base, fx or {}, "contributions"))
+        snap["contributions"] = contrib
+    if gifts is None and same is not None:
+        gifts = same.get("gifts")
+    if gifts:
+        snap["gifts"] = gifts
     notes = [n for n in [(same or {}).get("note"), note] if n]
     if notes:
         snap["note"] = " | ".join(dict.fromkeys(notes))
-    if fx:
-        snap["fx"] = fx
-    old = same if not history else (same_exact if not keep_month else None)
-    if old is not None:
-        snaps.remove(old)
+    if same is not None:
+        snaps.remove(same)
     snaps.append(snap)
     snaps.sort(key=lambda s: s["date"])
     return snap, carried, missing
 
 
 def gaps(data, snap):
-    """Accounts present both before and after this snapshot but missing from it (they count as 0)."""
     snaps = data.get("snapshots", [])
     before = [x for x in snaps if x["date"] < snap["date"]]
     after = [x for x in snaps if x["date"] > snap["date"]]
     if not before or not after:
         return []
-    return sorted(k for k in before[-1].get("values", {})
-                  if k in after[0].get("values", {}) and k not in snap["values"])
+    return sorted(k for k in before[-1].get("values", {}) if k in after[0].get("values", {}) and k not in snap["values"])
+
+
+def parse_contrib(items, single, base, fx):
+    if single is not None:
+        return r2(to_base(single, base, fx, "contributions"))
+    if not items:
+        return None
+    out = {}
+    for item in items:
+        k, v = kv(item, "--contribution")
+        out[k] = r2(to_base(v, base, fx, k))
+    return out
+
+
+def parse_gifts(data, items):
+    if not items:
+        return None
+    pids = {p["id"] for p in people(data)}
+    out = {}
+    for item in items:
+        k, v = kv(item, "--gift")
+        if k not in pids and k != "joint":
+            raise UserError("--gift owner must be a person id or joint, got '%s'" % k)
+        out[k] = num(v, "gift")
+    return out
 
 
 def cmd_snapshot(a):
-    data, kind = read_any(a.file)
+    data = load(a.file)
     base = data["settings"]["currency"]
     fx = parse_fx(a.fx)
     on = parse_date(a.date or today())
@@ -719,15 +956,18 @@ def cmd_snapshot(a):
         k, v = kv(item, "--set")
         if k not in accs:
             raise UserError("Unknown account '%s' (add it first with the account command)" % k)
-        explicit[k] = to_base(v, base, fx, k)
-    snap, carried, missing = build_snapshot(
-        data, on, explicit, history=a.history, keep_month=a.keep_month,
-        allow_missing=a.allow_missing or a.history, contrib=a.contributions, note=a.note, fx=fx)
-    write_any(a.file, data, kind)
+        explicit[k] = abs(to_base(v, base, fx, k)) if accs[k].get("group") == "debt" else to_base(v, base, fx, k)
+    contrib = parse_contrib(a.contribution, a.contributions, base, fx)
+    snap, carried, missing = build_snapshot(data, on, explicit, history=a.history, keep_month=a.keep_month,
+                                            allow_missing=a.allow_missing or a.history, contrib=contrib,
+                                            gifts=parse_gifts(data, a.gift), note=a.note, fx=fx)
+    for k in fx:
+        data["settings"].setdefault("fx", {})[k] = fx[k]
+    save(a.file, data)
     t = totals(data, snap)
     print("Snapshot %s saved: net worth %s %s" % (snap["date"], money(t["net"]), base))
     if carried:
-        print("Carried forward (not updated yet): " + ", ".join(sorted(carried)))
+        print("Kept from an earlier month (shown as estimated): " + ", ".join(sorted(carried)))
     if missing:
         print("Left out (no value): " + ", ".join(missing))
     g = gaps(data, snap)
@@ -736,39 +976,38 @@ def cmd_snapshot(a):
 
 
 def cmd_history(a):
-    """CSV columns: date, then one column per account id; optional contributions and note."""
-    import csv
-    data, kind = read_any(a.file)
+    """CSV columns: date, then one column per account id; optional contributions, gifts_<person>, note."""
+    data = load(a.file)
     base = data["settings"]["currency"]
     fx = parse_fx(a.fx)
     accs = accounts_by_id(data)
     with open(a.csv, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
-    if not rows:
-        raise UserError("The CSV has no rows")
-    cols = [c for c in rows[0].keys() if c not in ("date", "contributions", "note")]
-    unknown = [c for c in cols if c not in accs]
-    if "date" not in rows[0]:
-        raise UserError("The CSV needs a 'date' column (YYYY-MM-DD)")
+    if not rows or "date" not in rows[0]:
+        raise UserError("The CSV needs a 'date' column (YYYY-MM-DD) and at least one row")
+    unknown = [c for c in rows[0] if c not in accs and c not in ("date", "contributions", "note") and not c.startswith("gift_")]
     if unknown:
-        raise UserError("Unknown account ids in CSV header: %s" % ", ".join(unknown))
-    n = 0
+        raise UserError("Unknown columns in CSV header: %s (use account ids)" % ", ".join(unknown))
     for row in rows:
         on = parse_date(row["date"])
-        explicit = {k: to_base(v, base, fx, k) for k, v in row.items() if k in accs and v not in (None, "")}
+        explicit = {}
+        for k, v in row.items():
+            if k in accs and v not in (None, ""):
+                x = to_base(v, base, fx, k)
+                explicit[k] = abs(x) if accs[k].get("group") == "debt" else x
+        gifts = {k[5:]: num(v, k) for k, v in row.items() if k.startswith("gift_") and v not in (None, "")} or None
         c = row.get("contributions") or None
-        build_snapshot(data, on, explicit, history=True, allow_missing=True, contrib=c, note=row.get("note") or None)
-        n += 1
-    write_any(a.file, data, kind)
+        build_snapshot(data, on, explicit, history=True, allow_missing=True, contrib=r2(num(c)) if c else None, gifts=gifts, note=row.get("note") or None)
+    save(a.file, data)
+    print("Imported %d past snapshots (%s to %s)" % (len(rows), rows[0]["date"], rows[-1]["date"]))
     for sn in data["snapshots"]:
         g = gaps(data, sn)
         if g:
             print("WARNING %s: missing, so counted as 0: %s" % (sn["date"], ", ".join(g)))
-    print("Imported %d historical snapshots (%s to %s)" % (n, rows[0]["date"], rows[-1]["date"]))
 
 
 def cmd_budget(a):
-    data, kind = read_any(a.file)
+    data = load(a.file)
     if not re.match(r"^\d{4}-\d{2}$", a.month):
         raise UserError("--month must be YYYY-MM")
     base = data["settings"]["currency"]
@@ -795,217 +1034,756 @@ def cmd_budget(a):
     if a.note:
         m["note"] = a.note
     months.sort(key=lambda x: x["month"])
-    write_any(a.file, data, kind)
-    inc = sum(m.get("income", {}).values())
-    exp = sum(m.get("expenses", {}).values())
-    rate = (inc - exp) / inc if inc else None
-    print("Budget %s: income %s, expenses %s, saved %s (%s)" % (
-        a.month, money(inc), money(exp), money(inc - exp), "-" if rate is None else "{:.0%}".format(rate)))
+    save(a.file, data)
+    cf = cashflow_rows(data)
+    row = next(r for r in cf if r["month"] == a.month)
+    unmapped = sorted(set(m.get("expenses", {})) - set(data.get("budget_map", {})))
+    print("Budget %s: income %s, spending %s, kept %s (%s)" % (a.month, money(row["revenues"]), money(row["spending"] - row["loan_principal"]),
+                                                              money(row["savings_adjusted"]), "-" if not row["revenues"] else "{:.0%}".format(row["savings_adjusted"] / row["revenues"])))
+    if unmapped:
+        print("Not in the needs/wants map yet (count as Wants until mapped): " + ", ".join(unmapped))
 
 
-def cmd_inflation(a):
-    data, kind = read_any(a.file)
-    s = data["settings"]
-    if a.off:
-        s.pop("inflation", None)
-    elif a.rate is not None:
-        s["inflation"] = {"annual_rate": num(a.rate, "rate")}
-    else:
-        infl = s.get("inflation") or {}
-        if "index" not in infl:
-            infl = {"index": {}}
-        for item in a.set or []:
-            k, v = kv(item, "--set")
-            if not re.match(r"^\d{4}-\d{2}$", k):
-                raise UserError("Index month must be YYYY-MM, got '%s'" % k)
-            infl["index"][k] = num(v, k)
-        infl["index"] = dict(sorted(infl["index"].items()))
-        if a.source:
-            infl["source"] = a.source
-        s["inflation"] = infl
-    write_any(a.file, data, kind)
-    print("Inflation settings updated")
+# ----------------------------------------------------------------------------- derived rows
+
+def scheduled_debts(data):
+    return [a for a in data["accounts"] if a.get("group") == "debt" and a.get("method") == "formula"
+            and (a.get("formula") or {}).get("type") in ("annuity", "linear")]
 
 
-def stale_holdings(data, ref):
+def loan_rows(data):
+    agg = {}
+    for acc in scheduled_debts(data):
+        for r in loan_schedule(acc["formula"]):
+            o = agg.setdefault(r["month"], {"month": r["month"], "balance": 0.0, "payment": 0.0, "interest": 0.0, "principal": 0.0, "insurance": 0.0})
+            for k in ("balance", "payment", "interest", "principal"):
+                o[k] += r[k]
+    rows = [agg[k] for k in sorted(agg)]
+    for r in rows:
+        for k in ("balance", "payment", "interest", "principal", "insurance"):
+            r[k] = round(r[k], 2)
+    return rows
+
+
+def cashflow_rows(data):
+    bm = data.get("budget_map", {})
+    principal = {r["month"]: r["principal"] for r in loan_rows(data)}
     out = []
-    for h in data.get("holdings", []):
-        pd = h.get("price_date")
-        if not pd or (ref - parse_date(pd)).days > STALE_DAYS:
-            out.append(h)
+    for m in data["budget"]["months"]:
+        inc = sum(float(v) for v in m.get("income", {}).values())
+        spend = loan_pay = 0.0
+        for c, v in m.get("expenses", {}).items():
+            b = bm.get(c, "Wants")
+            if b == "Saving":
+                continue
+            spend += float(v)
+            if b == "Loan":
+                loan_pay += float(v)
+        lp = min(loan_pay, principal.get(m["month"], 0.0)) if loan_pay else 0.0
+        out.append({"month": m["month"], "period_end": month_end(m["month"]), "revenues": r2(inc), "salary": r2(inc), "exceptional": 0.0,
+                    "spending": r2(spend), "other_spending": 0.0, "loan_payment": r2(loan_pay), "loan_principal": r2(lp),
+                    "savings_adjusted": r2(inc - spend + lp), "savings_rate": round((inc - spend + lp) / inc, 4) if inc else None})
     return out
 
 
-def cmd_plan(a):
-    data, _ = read_any(a.file)
+def spending_rows(data):
+    bm = data.get("budget_map", {})
+    out = []
+    for m in data["budget"]["months"]:
+        for c, v in m.get("expenses", {}).items():
+            b = bm.get(c, "Wants")
+            if b == "Saving":
+                continue
+            out.append({"month": m["month"], "kind": b, "category": c, "amount": r2(v)})
+    return out
+
+
+def attribution_rows(data):
+    accs = accounts_by_id(data)
+    snaps = data["snapshots"]
+    owners = sorted({owner_name(data, a.get("owner")) for a in accs.values()})
+    out = []
+    for i, cur in enumerate(snaps):
+        ym = cur["date"][:7]
+        if i == 0:
+            for o in owners:
+                out.append({"month": ym, "owner": o, "change": 0.0, "markets": 0.0, "gifts": 0.0, "saved": 0.0})
+            continue
+        prev = snaps[i - 1]
+        flows = contributions_by_account(data, prev, cur)
+        gifts = cur.get("gifts") or {}
+        by = {o: {"change": 0.0, "markets": 0.0, "gifts": 0.0} for o in owners}
+        for aid in set(cur["values"]) | set(prev.get("values", {})):
+            acc = accs.get(aid)
+            if not acc:
+                continue
+            o = owner_name(data, acc.get("owner"))
+            now = signed(acc, cur["values"].get(aid, 0.0))
+            was = signed(acc, prev.get("values", {}).get(aid, 0.0))
+            dv = now - was
+            by[o]["change"] += dv
+            if acc.get("group") in ("cash", "debt"):
+                continue
+            if aid not in prev.get("values", {}) or aid not in cur["values"]:
+                continue  # opened or closed: money moved, not a market move
+            by[o]["markets"] += dv - flows.get(aid, 0.0)
+        for k, v in gifts.items():
+            o = owner_name(data, k)
+            if o in by:
+                by[o]["gifts"] += float(v)
+        for o, x in by.items():
+            out.append({"month": ym, "owner": o, "change": r2(x["change"]), "markets": r2(x["markets"]), "gifts": r2(x["gifts"]),
+                        "saved": r2(x["change"] - x["markets"] - x["gifts"])})
+    return out
+
+
+def updates_via(acc):
+    m = acc.get("method")
+    src = acc.get("source")
+    base = {"connector": "Connector", "holdings": "Prices", "statement": "Statement", "ask": "Your number", "formula": "Formula", "fixed": "Fixed"}.get(m, m)
+    return base + (" · " + src if src else "")
+
+
+def snapshot_rows(data):
+    accs = accounts_by_id(data)
+    out = []
+    for sn in data["snapshots"]:
+        carried = set(sn.get("carried", []))
+        for aid, v in sn["values"].items():
+            acc = accs.get(aid)
+            if not acc:
+                continue
+            g = acc.get("group")
+            out.append({"date": sn["date"], "owner": owner_name(data, acc.get("owner")),
+                        "group": "Debt" if g == "debt" else "Invested" if g in ("invested", "retirement") else "Other",
+                        "kind": g, "category": category_of(acc), "item": acc["name"], "platform": acc.get("institution", ""),
+                        "value": r2(signed(acc, v)), "updates_via": updates_via(acc), "estimated": aid in carried})
+    return out
+
+
+def holding_rows(data):
+    base = data["settings"]["currency"]
+    accs = accounts_by_id(data)
+    out = []
+    for h in data.get("holdings", []):
+        acc = accs.get(h["account"], {})
+        v = holding_value(h, base)
+        if v is None:
+            continue
+        out.append({"id": h["id"], "account": acc.get("name", h["account"]), "owner": owner_name(data, acc.get("owner")),
+                    "name": h.get("name") or h.get("ticker") or h["id"], "ticker": h.get("ticker", ""), "class": h.get("class") or acc.get("class") or "other",
+                    "quantity": h.get("quantity"), "unit": h.get("unit", ""), "price": h.get("price"), "currency": (h.get("currency") or base).upper(),
+                    "fx": h.get("fx") if (h.get("currency") or base).upper() != base else 1, "value": r2(v), "cost": r2(h.get("cost")),
+                    "price_date": h.get("price_date", ""), "price_source": h.get("price_source", ""), "is_cash": False})
+    for acc in data["accounts"]:
+        if abs(float(acc.get("cash") or 0)) >= 1 and account_holdings(data, acc["id"]):
+            out.append({"id": acc["id"] + "-cash", "account": acc["name"], "owner": owner_name(data, acc.get("owner")), "name": "Cash in " + acc["name"],
+                        "ticker": "", "class": "cash", "quantity": None, "unit": "", "price": None, "currency": base, "fx": 1,
+                        "value": r2(acc["cash"]), "cost": r2(acc["cash"]), "price_date": "", "price_source": "", "is_cash": True})
+    return out
+
+
+def region_rows(data):
+    base = data["settings"]["currency"]
+    out = []
+    for acc in data["accounts"]:
+        w = dict(acc.get("regions") or {})
+        if not w:
+            hs = account_holdings(data, acc["id"])
+            tot = 0.0
+            for h in hs:
+                v = holding_value(h, base) or 0.0
+                if h.get("regions"):
+                    for reg, f in h["regions"].items():
+                        w[reg] = w.get(reg, 0.0) + v * f
+                    tot += v
+            if tot:
+                total_v = sum((holding_value(h, base) or 0.0) for h in hs) + float(acc.get("cash", 0) or 0)
+                w = {k: v / total_v for k, v in w.items()}
+        for reg, f in w.items():
+            out.append({"item": acc["name"], "region": reg, "weight": round(float(f), 4)})
+    return out
+
+
+def settings_rows(data):
     s = data["settings"]
+    base = s["currency"]
+    rows = [{"section": "meta", "key": "title", "value": s.get("title", "Wealth dashboard")},
+            {"section": "meta", "key": "currency", "value": base},
+            {"section": "meta", "key": "symbol", "value": SYMBOLS.get(base, base + " ")},
+            {"section": "meta", "key": "locale", "value": s.get("locale", "en-GB")},
+            {"section": "meta", "key": "updated", "value": s.get("updated", today())}]
+    for p in people(data):
+        rows.append({"section": "person", "key": p["name"], "value": None, "birth_date": p.get("birth_date"), "gross_income": p.get("gross_income")})
+    js = s.get("joint_split") or {}
+    pmap = person_by_id(data)
+    for pid, v in js.items():
+        if pid in pmap:
+            rows.append({"section": "joint_share", "key": pmap[pid]["name"], "value": float(v)})
+    rows.append({"section": "household", "key": "children_under_14", "value": int(s.get("children_under_14", 0) or 0)})
+    rows.append({"section": "household", "key": "children_14_plus", "value": int(s.get("children_14_plus", 0) or 0)})
+    rows.append({"section": "compare", "key": "countries", "value": ",".join(s.get("compare_countries") or [])})
+    fx = dict(s.get("fx") or {})
+    if base == "EUR":
+        fx["EUR"] = 1.0
+    if base == "USD":
+        fx["USD"] = 1.0
+    for cur in ("EUR", "USD"):
+        if fx.get(cur):
+            rows.append({"section": "fx", "key": cur, "value": float(fx[cur])})
+    for k, v in (s.get("projection") or {}).items():
+        rows.append({"section": "projection", "key": k, "value": v})
+    pen = sum(float(a.get("monthly_contribution") or 0) for a in data["accounts"] if a.get("group") == "retirement" and is_open(a, dt.date.today()))
+    rows.append({"section": "pension", "key": "monthly_contribution", "value": round(pen, 2)})
+    for r in rows:
+        r.setdefault("birth_date", None)
+        r.setdefault("gross_income", None)
+        r.setdefault("note", "")
+    return rows
+
+
+def goal_rows(data):
+    out = []
+    for g in data.get("goals", []):
+        out.append({"id": g["id"], "kind": g["kind"], "label": g.get("label", g["id"]), "view": g.get("view") or "Household", "metric": g["metric"],
+                    "unit": "amount" if g.get("unit") == "eur" else g.get("unit", "pct"), "target": g.get("target"), "from": g.get("from", "") or "",
+                    "deadline": g.get("deadline", "") or "", "note": g.get("note", "") or ""})
+    return out
+
+
+def budget_map_rows(data):
+    cats = []
+    for m in data["budget"]["months"]:
+        for c in m.get("expenses", {}):
+            if c not in cats:
+                cats.append(c)
+    for c in data.get("budget_map", {}):
+        if c not in cats:
+            cats.append(c)
+    bm = data.get("budget_map", {})
+    order = {"Needs": 0, "Wants": 1, "Loan": 2, "Saving": 3}
+    rows = [{"kind": "Spending", "category": c, "bucket": bm.get(c, "Wants (not mapped)")} for c in cats]
+    return sorted(rows, key=lambda r: (order.get(r["bucket"], 1), r["category"].lower()))
+
+
+def next_checkin(data, ref=None):
+    ref = ref or dt.date.today()
+    day = max(1, min(28, int(data["settings"].get("checkin_day", 1) or 1)))
+    d = dt.date(ref.year, ref.month, day)
+    if d <= ref:
+        d = dt.date(ref.year + (ref.month == 12), ref.month % 12 + 1, day)
+    return d.isoformat()
+
+
+def plan_items(data):
     on = dt.date.today()
-    snaps = data.get("snapshots", [])
-    last = snaps[-1] if snaps else None
-    print("UPDATE PLAN - %s (%s)" % (s.get("title", "Wealth dashboard"), s["currency"]))
-    print("Last snapshot: %s" % (last["date"] if last else "none yet"))
-    if s.get("dashboard_url"):
-        print("Dashboard: %s" % s["dashboard_url"])
     auto, user = [], []
-    for acc in data.get("accounts", []):
+    for acc in data["accounts"]:
         if not is_open(acc, on):
             continue
-        m, name = acc.get("method"), "%s [%s]" % (acc.get("name"), acc["id"])
-        src = (" - " + acc["source"]) if acc.get("source") else ""
+        m, name = acc.get("method"), acc["name"]
         hs = account_holdings(data, acc["id"])
+        src = (" (" + acc["source"] + ")") if acc.get("source") else ""
         if m == "connector":
-            auto.append("%s: pull balances%s from the connector%s" % (name, " and positions" if hs else "", src))
+            auto.append((name, "Pulled from your connected account" + src, "connector"))
         elif m == "holdings":
             addr = [h for h in hs if h.get("address")]
-            line = "%s: refresh prices for %d holding(s)" % (name, len(hs))
-            if addr:
-                line += "; read on-chain balance for %s" % ", ".join(h["id"] for h in addr)
-            auto.append(line + src)
+            auto.append((name, "Prices looked up for %d position%s%s%s" % (len(hs), "" if len(hs) == 1 else "s",
+                                                                          "; on-chain balance read" if addr else "", src), "prices"))
         elif m == "formula":
             f = acc.get("formula", {})
             if f.get("per_km"):
-                user.append("%s: current odometer reading (km) - value is computed" % name)
+                user.append((name, "Odometer reading (km); the value is worked out from it", "odometer"))
             else:
-                auto.append("%s: computed by formula (%s)" % (name, f.get("type")))
-        elif m == "fixed":
-            pass
+                auto.append((name, "Worked out by formula (%s)" % f.get("type"), "formula"))
         elif m == "statement":
-            user.append("%s: upload the latest statement/export or a screenshot%s" % (name, src))
+            user.append((name, "Latest statement, export or screenshot" + src, "statement"))
+        elif m == "ask":
+            what = {"property": "Current estimated value", "other": "Current estimated value", "debt": "Amount still owed",
+                    "retirement": "Current pot value"}.get(acc.get("group"), "Current balance")
+            user.append((name, what + src, "ask"))
+    if data["budget"]["months"]:
+        user.append(("Budget", "Last month's income and spending (bank export, screenshot or totals)", "budget"))
+    if any(a.get("group") == "invested" for a in data["accounts"]):
+        user.append(("Contributions", "Money you added to or took out of investment accounts since the last update", "contributions"))
+    return auto, user
+
+
+def checkin_rows(data):
+    nxt = next_checkin(data)
+    auto, user = plan_items(data)
+    rows = [{"item": n, "cadence": "Monthly", "next": nxt, "how": "Automatic: " + h} for n, h, _ in auto]
+    rows += [{"item": n, "cadence": "Monthly", "next": nxt, "how": "You: " + h} for n, h, _ in user]
+    rows.append({"item": "How you compare", "cadence": "Yearly", "next": "", "how": "Survey tables come with the skill; updated with new versions"})
+    return rows
+
+
+def notes_rows(data):
+    out, accs = [], accounts_by_id(data)
+    for n in data["settings"].get("notes", []):
+        out.append({"id": "note-%d" % len(out), "note": n})
+    sym = SYMBOLS.get(data["settings"]["currency"], data["settings"]["currency"] + " ")
+    for acc in data["accounts"]:
+        f = acc.get("formula") or {}
+        t = f.get("type")
+        if acc.get("method") != "formula" or not t:
+            continue
+        if t == "depreciation":
+            txt = "%s: bought for %s%s in %s, losing %d%% of its value a year" % (acc["name"], sym, "{:,.0f}".format(float(f["purchase_price"])),
+                                                                              str(f["purchase_date"])[:7], round(float(f.get("annual_rate", 0.15)) * 100))
+            if f.get("per_km"):
+                txt += ", less %s%s per km driven" % (sym, f["per_km"])
+        elif t == "annuity":
+            txt = "%s: %s%s over %s years at %.2f%% from %s, equal monthly payments; the balance follows the schedule" % (
+                acc["name"], sym, "{:,.0f}".format(float(f["principal"])), f["years"], float(f.get("annual_rate", 0)) * 100, str(f["start"])[:7])
+        elif t == "linear":
+            txt = "%s: %s%s repaid in equal parts over %s years from %s" % (acc["name"], sym, "{:,.0f}".format(float(f["principal"])), f["years"], str(f["start"])[:7])
         else:
-            what = {"property": "current estimated value", "other": "current estimated value",
-                    "debt": "outstanding balance"}.get(acc.get("group"), "current balance")
-            user.append("%s: %s%s" % (name, what, src))
-    if s.get("inflation", {}).get("index") is not None:
-        auto.append("Inflation: add the latest monthly index value (%s)" % s["inflation"].get("source", "CPI"))
-    if (data.get("budget") or {}).get("months"):
-        user.append("Budget: last month's income and expenses (bank export, screenshot, or totals)")
-    user.append("Contributions: net amount you added to (or withdrew from) investment accounts since the last update")
+            txt = "%s: %s%s on %s, growing %.1f%% a year (an assumption, not a valuation)" % (acc["name"], sym, "{:,.0f}".format(float(f["value"])),
+                                                                                           str(f["date"])[:7], float(f.get("annual_rate", 0)) * 100)
+        out.append({"id": "formula-" + acc["id"], "note": txt})
+    for acc in data["accounts"]:
+        if acc.get("monthly_contribution"):
+            out.append({"id": "contrib-" + acc["id"], "note": "%s: %s%s a month paid in, counted as saving" % (acc["name"], sym, "{:,.0f}".format(float(acc["monthly_contribution"])))})
+    if data["snapshots"]:
+        last = data["snapshots"][-1]
+        for aid in last.get("carried", []):
+            acc = accs.get(aid)
+            if acc:
+                src = next((s["date"] for s in reversed(data["snapshots"]) if aid in s["values"] and aid not in s.get("carried", [])), None)
+                out.append({"id": "carried-" + aid, "note": "%s: kept at its value from %s until you give a new one" % (acc["name"], src or "an earlier month")})
+    for h in data.get("holdings", []):
+        if h.get("cost") is None:
+            out.append({"id": "nocost-" + h["id"], "note": "%s: purchase cost unknown, so no gain is shown for it" % (h.get("name") or h["id"])})
+    bm = data.get("budget_map", {})
+    if any(v == "Loan" for v in bm.values()) and not scheduled_debts(data):
+        out.append({"id": "loan-noschedule", "note": "Loan payments count fully as spending: add the loan's terms to split out the principal, which is saving"})
+    return out
+
+
+def price_rows(data):
+    return [{"holding": p["holding"], "date": p["date"], "price": p["price"]} for p in data.get("prices", [])]
+
+
+def reference(name):
+    with open(os.path.join(ASSETS, "reference", name), encoding="utf-8") as f:
+        return json.load(f)
+
+
+DATASETS = [
+    ("snapshots", "Holdings by month", "Every asset and debt line on each update date, by owner, with how it updates. Built by the monthly check-in from prices, statements, your numbers and formulas."),
+    ("attribution", "Saved, markets and gifts", "For each update and owner, the change in net worth split into money saved, market and value moves (investments, property, vehicles), and gifts."),
+    ("cashflow", "Monthly income and spending", "Household income, spending and what was left over each budget month; loan principal counted as saving."),
+    ("spending", "Spending by category", "Each budget month's spending by category, marked as needs, wants or loan payments."),
+    ("loan", "Loan schedules", "Month-by-month balance, payment and interest of every loan with known terms, added together."),
+    ("checkin", "What updates when", "Each item the monthly check-in updates, whether it is automatic or needs you, and when it runs next."),
+    ("settings", "Settings", "Household members, joint-account split, currency, exchange rates, comparison countries, projection returns and pension contributions."),
+    ("goals", "Goals", "Budget goals (needs, wants, savings) and milestones (net worth, invested, assets, cash, debt, months of cash), with optional start and deadline."),
+    ("budget_map", "Needs and wants", "Which spending categories count as needs, wants, loan payments or saving."),
+    ("region_weights", "Regions held", "For each account, the share of its value in each region, from the funds and shares it holds."),
+    ("holdings", "Investment positions", "Each position's quantity, price, value and purchase cost, from the latest update."),
+    ("price_history", "Prices at each update", "The price of each position recorded at every monthly update."),
+    ("notes", "Assumptions", "How values that are not read from a statement or a price are worked out."),
+    ("peers", "Survey percentiles", "Percentile thresholds of household wealth, income and earnings by country and age band, brought to recent prices. Public statistics shipped with the skill."),
+    ("peers_meta", "Survey sources", "Source, year, population and notes for each comparison table."),
+]
+
+
+def dataset_rows(data, ds):
+    return {
+        "snapshots": snapshot_rows, "attribution": attribution_rows, "cashflow": cashflow_rows, "spending": spending_rows,
+        "loan": loan_rows, "checkin": checkin_rows, "settings": settings_rows, "goals": goal_rows, "budget_map": budget_map_rows,
+        "region_weights": region_rows, "holdings": holding_rows, "price_history": price_rows, "notes": notes_rows,
+        "peers": lambda d: reference("peers.json"), "peers_meta": lambda d: reference("peers_meta.json"),
+    }[ds](data)
+
+
+def all_datasets(data):
+    return {ds: dataset_rows(data, ds) for ds, _, _ in DATASETS}
+
+
+# ----------------------------------------------------------------------------- publishing
+
+def sha(obj):
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def cmd_datasets(a):
+    data = load(a.file)
+    os.makedirs(a.outdir, exist_ok=True)
+    published = data.get("published", {})
+    manifest, changed = {}, []
+    for ds, title, desc in DATASETS:
+        rows = dataset_rows(data, ds)
+        path = os.path.join(a.outdir, ds + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, separators=(",", ":"))
+        h = sha(rows)
+        manifest[ds] = {"file": path, "name": ds + ".json", "sha256": h, "rows": len(rows), "title": title}
+        if published.get(ds, {}).get("sha256") != h:
+            changed.append(ds)
+    with open(os.path.join(a.outdir, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=1)
+    print("Wrote %d dataset files to %s" % (len(manifest), a.outdir))
+    print("Changed since the last publish (upload these): " + (", ".join(changed) if changed else "none"))
+
+
+def page_text(live=None):
+    def rd(name):
+        with open(os.path.join(ASSETS, "page", name), encoding="utf-8") as f:
+            return f.read()
+    body = rd("body.html")
+    scripts = ["<script>\n" + rd("script.js") + "</script>"]
+    if live == "ibkr":
+        body = body.replace("<!--WD:LIVE_TAB-->", '<button class="pt-tab" role="tab" id="tab-live" data-tab="live" aria-selected="false">Live IBKR</button>')
+        body = body.replace("<!--WD:LIVE_SECTION-->", rd("live-ibkr.html"))
+        scripts.insert(0, "<script>\n" + rd("live-ibkr.js") + "</script>")
+    else:
+        body = body.replace("<!--WD:LIVE_TAB-->\n", "").replace("<!--WD:LIVE_SECTION-->\n", "")
+    return "<style>\n" + rd("style.css") + "</style>\n" + body + "\n".join(scripts) + "\n"
+
+
+def cmd_page(a):
+    text = page_text(a.live)
+    with open(a.out, "w", encoding="utf-8") as f:
+        json.dump({"text": text}, f, ensure_ascii=False)
+    print("Wrote %s (%d KB page%s)" % (a.out, len(text.encode("utf-8")) // 1024, ", live " + a.live if a.live else ""))
+
+
+LIVE_IBKR = [
+    ("ibkr_positions", "IBKR positions", "get_account_positions", "Every open position with quantity, price, value, average cost and profit, in its own currency. Reads your IBKR open positions."),
+    ("ibkr_balances", "IBKR balances", "get_account_balances", "Cash, position value, net value and exchange rate per currency, plus the account total in its base currency. Reads your IBKR account balances."),
+    ("ibkr_performance", "IBKR performance, 12 months", "get_pa_performance_all_periods", "Daily account value and cumulative time-weighted return over the last 12 months. Reads your IBKR performance history."),
+    ("ibkr_history", "IBKR weekly prices, 6 months", "get_account_positions", "Weekly closing prices for each open position over six months, one price-history call per position. Reads your IBKR positions and market data."),
+]
+
+
+def cmd_store(a):
+    """Write the dashboard's documents as JSON files plus batch.json, the list of writes for one ArtifactData batch."""
+    data = load(a.file)
+    with open(a.urls, encoding="utf-8") as f:
+        urls = json.load(f)
+    versions = {}
+    if a.versions:
+        with open(a.versions, encoding="utf-8") as f:
+            versions = json.load(f)
+    published = data.get("published", {})
+    os.makedirs(a.outdir, exist_ok=True)
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    writes = []
+
+    def doc(collection, doc_id, body):
+        path = os.path.join(a.outdir, "%s__%s.json" % (collection.replace("/", "_"), doc_id.replace(".", "_")))
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(body, f, ensure_ascii=False)
+        key = collection + "/" + doc_id
+        w = {"op": "set", "collection": collection, "doc_id": doc_id, "file_path": os.path.abspath(path)}
+        if key in versions:
+            w["if_version"] = int(versions[key])
+        writes.append(w)
+
+    if not a.only_datasets:
+        doc("dash", "meta", {"title": data["settings"].get("title", "Wealth dashboard")})
+        doc("dash", "params", dict(DEFAULT_PARAMS))
+    for ds, title, desc in DATASETS:
+        url = urls.get(ds) or (None if a.only_changed else published.get(ds, {}).get("url"))
+        if not url:
+            if a.only_changed:
+                continue
+            raise UserError("No uploaded file for dataset '%s': upload it and add its url to %s" % (ds, a.urls))
+        body = {"title": title, "description": desc, "source": {"kind": "file", "url": url, "name": ds + ".json", "format": "json"},
+                "updated": {"at": now, "by": a.by}}
+        if ds in ("peers", "peers_meta"):
+            body["schedule"] = "Yearly, with new versions of the wealth-dashboard skill"
+            body["staleAfterHours"] = 24 * 400
+        else:
+            body["schedule"] = "Monthly, by your scheduled check-in"
+            body["staleAfterHours"] = 24 * 40
+        doc("datasets", ds, body)
+    if a.live == "ibkr" and not a.only_datasets:
+        for ds, title, tool, desc in LIVE_IBKR:
+            doc("datasets", ds, {"title": title, "description": desc, "source": {"kind": "query", "connector": a.connector, "tool": tool, "args": {}}})
+    if not a.only_datasets:
+        doc("files", "index.html", {"text": page_text(a.live)})
+    with open(os.path.join(a.outdir, "batch.json"), "w", encoding="utf-8") as f:
+        json.dump(writes, f, indent=1)
+    print("Wrote %d documents and %s" % (len(writes), os.path.join(a.outdir, "batch.json")))
+    print("Use them as the `writes` of one ArtifactData batch (file_path entries; add if_version for documents that already exist).")
+
+
+def cmd_published(a):
+    data = load(a.file)
+    with open(a.manifest, encoding="utf-8") as f:
+        manifest = json.load(f)
+    with open(a.urls, encoding="utf-8") as f:
+        urls = json.load(f)
+    pub = data.setdefault("published", {})
+    replaced = []
+    for ds, url in urls.items():
+        if ds not in manifest:
+            continue
+        old = pub.get(ds, {}).get("url")
+        if old and old != url:
+            replaced.append(old)
+        pub[ds] = {"url": url, "sha256": manifest[ds]["sha256"], "at": today()}
+    if a.dashboard_url:
+        data["settings"]["dashboard_url"] = a.dashboard_url
+    if a.live:
+        data["settings"]["live"] = a.live
+    save(a.file, data)
+    print("Recorded %d published datasets" % len(urls))
+    if replaced:
+        print("Old files you can now delete from the dashboard's assets: " + ", ".join(replaced))
+
+
+def cmd_standalone(a):
+    data = load(a.file)
+    sets = all_datasets(data)
+    payload = {"key": slug(data["settings"].get("title", "wealth")) + "-" + hashlib.sha1(json.dumps(data["settings"].get("people", [])).encode()).hexdigest()[:6],
+               "params": dict(DEFAULT_PARAMS), "datasets": sets}
+    blob = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+    def rd(*p):
+        with open(os.path.join(ASSETS, *p), encoding="utf-8") as f:
+            return f.read()
+    title = data["settings"].get("title", "Wealth dashboard")
+    esc = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    banner = ""
+    if data["settings"].get("demo"):
+        banner = '<div class="wd-banner"><span>Demo: every person, account and number on this page is invented.</span></div>\n'
+    head = ("<title>%s</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n<meta name=\"robots\" content=\"noindex, nofollow\">\n"
+            "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n"
+            "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400&display=swap\">\n"
+            "<style>\n%s</style>\n" % (esc, rd("standalone", "tokens.css")))
+    page = page_text(None)
+    body = (banner + '<div id="dash-root">\n' + page + "</div>\n"
+            '<script type="application/json" id="wd-data">' + blob + "</script>\n"
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>\n'
+            "<script>\n" + rd("standalone", "shim.js") + "</script>\n")
+    # the page's own scripts must run after the shim and d3: move them to the end
+    scripts = re.findall(r"<script>\n.*?</script>", page, flags=re.S)
+    for s in scripts:
+        body = body.replace(s, "", 1)
+    body += "\n".join(scripts) + "\n"
+    if a.target == "artifact":
+        out = head + body
+    else:
+        out = ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+               "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n" + head + "</head>\n<body>\n" + body + "</body>\n</html>\n")
+    with open(a.out, "w", encoding="utf-8") as f:
+        f.write(out)
+    print("Wrote %s (%s, %d KB)" % (a.out, a.target, len(out.encode("utf-8")) // 1024))
+
+
+# ----------------------------------------------------------------------------- reports
+
+def cmd_validate(a):
+    data = load(a.file)
+    errors, warnings = validate(data)
+    for e in errors:
+        print("ERROR   " + e)
+    for w in warnings:
+        print("WARNING " + w)
+    if not errors and not warnings:
+        print("OK - %d people, %d accounts, %d holdings, %d snapshots, %d budget months, %d goals" % (
+            len(people(data)), len(data["accounts"]), len(data["holdings"]), len(data["snapshots"]), len(data["budget"]["months"]), len(data["goals"])))
+    return 1 if errors else 0
+
+
+def cmd_plan(a):
+    data = load(a.file)
+    s = data["settings"]
+    last = data["snapshots"][-1]["date"] if data["snapshots"] else "none yet"
+    print("UPDATE PLAN - %s (%s), last update %s, next check-in %s" % (s.get("title"), s["currency"], last, next_checkin(data)))
+    if s.get("dashboard_url"):
+        print("Dashboard: %s" % s["dashboard_url"])
+    auto, user = plan_items(data)
+    on = dt.date.today()
+    stale = [h for h in data["holdings"] if not h.get("price_date") or (on - parse_date(h["price_date"])).days > 20]
     print("\nAUTOMATIC (do these first):")
-    for x in auto or ["(nothing automatic)"]:
-        print("  - " + x)
+    for n, h, _ in auto:
+        print("  - %s: %s" % (n, h))
+    if stale:
+        print("  - Prices to refresh: " + ", ".join(h.get("ticker") or h["id"] for h in stale))
+    fx_needed = sorted({(h.get("currency") or s["currency"]).upper() for h in data["holdings"]} - {s["currency"]})
+    want = sorted(set(fx_needed) | ({"EUR", "USD"} - {s["currency"]}))
+    print("  - Exchange rates (%s per 1 unit): %s" % (s["currency"], ", ".join(want) if want else "none needed"))
     print("\nNEEDS THE USER (ask in one message):")
-    for x in user:
-        print("  - " + x)
+    for n, h, _ in user:
+        print("  - %s: %s" % (n, h))
     return 0
 
 
 def cmd_summary(a):
-    data, _ = read_any(a.file)
+    data = load(a.file)
     s = data["settings"]
     cur = s["currency"]
-    snaps = data.get("snapshots", [])
+    snaps = data["snapshots"]
     if not snaps:
         print("No snapshots yet.")
         return 0
     last = snaps[-1]
     t = totals(data, last)
-    print("%s - as of %s (%s)" % (s.get("title", "Wealth dashboard"), last["date"], cur))
-    print("Net worth: %s  (assets %s, debts %s)" % (money(t["net"]), money(t["assets"]), money(t["debt"])))
+    print("%s - as of %s (%s)" % (s.get("title"), last["date"], cur))
+    print("Net worth: %s (assets %s, debts %s)" % (money(t["net"]), money(t["assets"]), money(t["debt"])))
+    att = attribution_rows(data)
     if len(snaps) > 1:
         p = snaps[-2]
         tp = totals(data, p)
         ch = t["net"] - tp["net"]
-        inv_ch = t["invested"] - tp["invested"]
-        c = last.get("contributions") or 0
-        print("Change since %s: %s (%s)" % (p["date"], money(ch), pct(ch / abs(tp["net"])) if tp["net"] else "-"))
-        print("Investments: %s, change %s of which contributions %s and market %s" % (
-            money(t["invested"]), money(inv_ch), money(c), money(inv_ch - c)))
-    ld = parse_date(last["date"])
-    y0 = [x for x in snaps if x["date"] < "%d-01-01" % ld.year]
+        rows = [r for r in att if r["month"] == last["date"][:7]]
+        print("Change since %s: %s (%s): saved %s, markets %s, gifts %s" % (
+            p["date"], money(ch), pct(ch / abs(tp["net"])) if tp["net"] else "-", money(sum(r["saved"] for r in rows)),
+            money(sum(r["markets"] for r in rows)), money(sum(r["gifts"] for r in rows))))
+    y0 = [x for x in snaps if x["date"] < last["date"][:4] + "-01-01"]
     if y0:
         ty = totals(data, y0[-1])
-        print("Year to date: %s (%s)" % (money(t["net"] - ty["net"]), pct((t["net"] - ty["net"]) / abs(ty["net"])) if ty["net"] else "-"))
+        print("Since 1 January: %s (%s)" % (money(t["net"] - ty["net"]), pct((t["net"] - ty["net"]) / abs(ty["net"])) if ty["net"] else "-"))
     names = {"invested": "Investments", "cash": "Cash", "retirement": "Pensions", "property": "Property", "other": "Other", "debt": "Debts"}
-    print("By group: " + ", ".join(
-        "%s %s" % (names[g], money(t[g])) for g in GROUPS if t[g]))
+    print("By group: " + ", ".join("%s %s" % (names[g], money(t[g])) for g in GROUPS if t[g]))
+    if len(people(data)) > 1:
+        accs = accounts_by_id(data)
+        js = s.get("joint_split") or {}
+        for p in people(data):
+            share = js.get(p["id"], 1 / len(people(data)))
+            v = 0.0
+            for aid, val in last["values"].items():
+                acc = accs.get(aid, {})
+                o = acc.get("owner")
+                f = 1 if o == p["id"] else share if o in (None, "", "joint") else 0
+                v += f * signed(acc, val)
+            print("  %s: %s" % (p["name"], money(v)))
     if last.get("carried"):
         accs = accounts_by_id(data)
-        print("Estimated (carried from an earlier month): " + ", ".join(
-            accs.get(k, {}).get("name", k) for k in last["carried"]))
-    st = stale_holdings(data, ld)
-    if st:
-        print("Prices older than %d days: %s" % (STALE_DAYS, ", ".join(h.get("ticker") or h["id"] for h in st)))
-    months = (data.get("budget") or {}).get("months", [])
-    if months:
-        m = months[-1]
-        inc = sum(m.get("income", {}).values())
-        exp = sum(m.get("expenses", {}).values())
-        print("Budget %s: income %s, expenses %s, saved %s%s" % (
-            m["month"], money(inc), money(exp), money(inc - exp),
-            (" (%.0f%%)" % ((inc - exp) / inc * 100)) if inc else ""))
-    g = s.get("goal")
-    if g and g.get("net_worth"):
-        print("Goal: %s by %s - %.0f%% reached" % (money(g["net_worth"]), g.get("by", "-"), t["net"] / g["net_worth"] * 100))
+        print("Estimated (kept from an earlier month): " + ", ".join(accs.get(k, {}).get("name", k) for k in last["carried"]))
+    on = parse_date(last["date"])
+    stale = [h for h in data["holdings"] if not h.get("price_date") or (on - parse_date(h["price_date"])).days > STALE_DAYS]
+    if stale:
+        print("Prices older than %d days: %s" % (STALE_DAYS, ", ".join(h.get("ticker") or h["id"] for h in stale)))
+    cf = cashflow_rows(data)
+    if cf:
+        r = cf[-1]
+        print("Budget %s: income %s, spending %s, kept %s%s" % (r["month"], money(r["revenues"]), money(r["spending"] - r["loan_principal"]),
+                                                               money(r["savings_adjusted"]), (" (%.0f%%)" % (r["savings_adjusted"] / r["revenues"] * 100)) if r["revenues"] else ""))
+    unmapped = sorted({c for m in data["budget"]["months"] for c in m.get("expenses", {})} - set(data.get("budget_map", {})))
+    if unmapped:
+        print("Spending categories not mapped to needs/wants yet: " + ", ".join(unmapped))
     return 0
 
 
-def cmd_build(a):
-    data, kind = read_any(a.file)
-    target = a.target or (kind if kind != "json" else "file")
-    out = a.out or (a.file if kind != "json" else os.path.splitext(a.file)[0] + ".html")
-    write_any(out, data, target, a.template)
-    print("Built %s (%s)" % (out, target))
+def cmd_show(a):
+    data = load(a.file)
+    s = data["settings"]
+    print("%s · %s · %s" % (s.get("title"), s["currency"], ", ".join(p["name"] for p in people(data)) or "no people yet"))
+    for acc in data["accounts"]:
+        print("  %-18s %-10s %-10s %-9s %s" % (acc["id"], acc["group"], acc["method"], owner_name(data, acc.get("owner")), acc["name"]))
+    for g in data["goals"]:
+        print("  goal %-14s %s %s %s %s" % (g["id"], g["kind"], g["metric"], g.get("target"), g.get("deadline") or ""))
+    return 0
 
 
-# ---------------------------------------------------------------------- cli
+def cmd_migrate(a):
+    """Convert a v1 dashboard page (or its JSON) into a v2 state file."""
+    with open(a.v1, encoding="utf-8") as f:
+        text = f.read()
+    if a.v1.lower().endswith(".json"):
+        old = json.loads(text)
+    else:
+        m = re.search(r'<script type="application/json" id="wealth-data">(.*?)</script>', text, re.S)
+        if not m:
+            raise UserError("No v1 data found in %s" % a.v1)
+        old = json.loads(m.group(1))
+    s = old.get("settings", {})
+    data = new_state(s.get("currency", "EUR"), s.get("title", "Wealth dashboard"), s.get("locale", "en-GB"))
+    pid = slug(s.get("owner") or "me")
+    data["settings"]["people"] = [{"id": pid, "name": (s.get("owner") or "Me").replace(" (demo)", "")}]
+    if s.get("goal", {}).get("net_worth"):
+        data["goals"].append({"id": "net-worth", "kind": "milestone", "label": "Net worth goal", "view": "Household", "metric": "net_worth",
+                              "unit": "amount", "target": s["goal"]["net_worth"], "from": "", "deadline": s["goal"].get("by", ""), "note": ""})
+    if s.get("inflation", {}).get("annual_rate") is not None:
+        data["settings"]["projection"]["inflation"] = s["inflation"]["annual_rate"]
+    for acc in old.get("accounts", []):
+        acc = dict(acc)
+        acc["owner"] = pid
+        data["accounts"].append(acc)
+    data["holdings"] = old.get("holdings", [])
+    for h in data["holdings"]:
+        if h.get("price") is not None and h.get("price_date"):
+            record_price(data, h, h["price_date"])
+    data["snapshots"] = old.get("snapshots", [])
+    data["budget"] = old.get("budget", {"months": []})
+    data["goals"] = default_goals() + data["goals"]
+    save(a.out, data)
+    print("Migrated to %s. Check people, owners and the needs/wants map next." % a.out)
+
+
+# ----------------------------------------------------------------------------- cli
 
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="wealth.py", description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(prog="wealth.py", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    x = sub.add_parser("new", help="create a new dashboard")
+    x = sub.add_parser("new", help="create a state file")
     x.add_argument("file")
     x.add_argument("--currency", default="EUR")
     x.add_argument("--title", default="Wealth dashboard")
-    x.add_argument("--owner")
-    x.add_argument("--language", default="en", help="UI language: en, fr, nl, de, es")
-    x.add_argument("--locale", help="number/date format, e.g. fr-FR, en-US")
-    x.add_argument("--target", choices=["artifact", "file"], default="file",
-                   help="artifact = page fragment for publishing as a Claude artifact; file = standalone HTML")
-    x.add_argument("--from", dest="from_json", help="start from this JSON data file")
+    x.add_argument("--locale", default="en-GB")
+    x.add_argument("--from", dest="from_json", help="start from this state JSON")
     x.add_argument("--force", action="store_true")
     x.set_defaults(fn=cmd_new)
 
-    x = sub.add_parser("export", help="write embedded data as JSON")
+    x = sub.add_parser("person", help="add, update or remove a household member")
     x.add_argument("file")
-    x.add_argument("--out")
-    x.set_defaults(fn=cmd_export)
+    x.add_argument("--id", required=True)
+    x.add_argument("--name")
+    x.add_argument("--birth", help="YYYY-MM-DD or YYYY (for age-group comparisons)")
+    x.add_argument("--gross", help="gross yearly income from work, in base currency")
+    x.add_argument("--remove", action="store_true")
+    x.set_defaults(fn=cmd_person)
 
-    x = sub.add_parser("import", help="replace embedded data with a JSON file")
+    x = sub.add_parser("household", help="children and the joint-account split")
     x.add_argument("file")
-    x.add_argument("json_file")
-    x.set_defaults(fn=cmd_import)
-
-    x = sub.add_parser("validate", help="check the data")
-    x.add_argument("file")
-    x.set_defaults(fn=cmd_validate)
+    x.add_argument("--children-under-14", dest="children_under_14")
+    x.add_argument("--children-14-plus", dest="children_14_plus")
+    x.add_argument("--joint-split", dest="joint_split", help="PERSON=SHARE,... e.g. sam=0.6,robin=0.4 (empty: equal)")
+    x.set_defaults(fn=cmd_household)
 
     x = sub.add_parser("settings", help="change settings")
     x.add_argument("file")
     x.add_argument("--set", action="append", metavar="KEY=VALUE",
-                   help="title, owner, currency, language, locale, checkin_day, goal_net_worth, goal_by, "
-                        "goal=none, dashboard_url, schedule, backup, label.<key>, group_label.<group>")
+                   help="title, currency, locale, checkin_day, dashboard_url, schedule, backup, demo, compare_countries=NL,FR,US, "
+                        "fx.EUR=<base per 1 EUR>, fx.USD=<base per 1 USD>, projection.years|return_low|return_mid|return_high|inflation|monthly_saving")
     x.set_defaults(fn=cmd_settings)
+
+    x = sub.add_parser("note", help="assumption notes shown on the dashboard")
+    x.add_argument("file")
+    x.add_argument("--add", action="append")
+    x.add_argument("--remove", action="append")
+    x.add_argument("--clear", action="store_true")
+    x.set_defaults(fn=cmd_note)
 
     x = sub.add_parser("account", help="add or update an account")
     x.add_argument("file")
     x.add_argument("--id", required=True)
     x.add_argument("--name")
+    x.add_argument("--owner", help="person id, or joint")
     x.add_argument("--group", choices=GROUPS)
     x.add_argument("--method", choices=METHODS)
-    x.add_argument("--class", dest="asset_class", help="asset class, e.g. equity, bonds, crypto, gold, cash")
+    x.add_argument("--category", help="label for charts, e.g. 'Index funds' (default from group and class)")
+    x.add_argument("--class", dest="asset_class", help="equity, bonds, crypto, gold, mixed, cash, vehicle, ...")
     x.add_argument("--institution")
-    x.add_argument("--source", help="how to update it, in plain words (for future runs)")
+    x.add_argument("--source", help="how to update it, in plain words or a tool call")
     x.add_argument("--note")
     x.add_argument("--cash", help="uninvested cash inside a holdings account, in base currency")
+    x.add_argument("--monthly-contribution", dest="monthly_contribution", help="money paid in each month (pensions), counted as saving")
     x.add_argument("--formula", help='JSON, e.g. \'{"type":"annuity","principal":300000,"annual_rate":0.04,"years":30,"start":"2021-06-01"}\'')
     x.add_argument("--formula-set", action="append", metavar="FIELD=VALUE")
+    x.add_argument("--region", action="append", metavar="REGION=WEIGHT", help="for a fund account without positions")
     x.add_argument("--closed", help="YYYY-MM-DD the account was closed (keeps history)")
-    x.add_argument("--remove", action="store_true", help="delete an account that has no history")
+    x.add_argument("--remove", action="store_true")
     x.set_defaults(fn=cmd_account)
 
-    x = sub.add_parser("holding", help="add, update or remove a holding")
+    x = sub.add_parser("holding", help="add, update or remove a position")
     x.add_argument("file")
     x.add_argument("--id", required=True)
     x.add_argument("--account")
@@ -1014,19 +1792,42 @@ def main(argv=None):
     x.add_argument("--isin")
     x.add_argument("--class", dest="asset_class")
     x.add_argument("--quantity")
-    x.add_argument("--unit", help="unit label for quantity, e.g. oz, g, BTC")
-    x.add_argument("--price", help="price per unit in the holding's currency")
-    x.add_argument("--currency", help="currency the price is quoted in (default: base)")
-    x.add_argument("--fx", help="base currency per 1 unit of the holding currency")
-    x.add_argument("--cost", help="total cost basis in base currency")
-    x.add_argument("--address", help="public on-chain address for automatic quantity")
-    x.add_argument("--price-source", dest="price_source", help="where the price comes from")
-    x.add_argument("--date", help="price date (default today)")
+    x.add_argument("--unit")
+    x.add_argument("--price")
+    x.add_argument("--currency")
+    x.add_argument("--fx", help="base currency per 1 unit of the price currency")
+    x.add_argument("--cost", help="total purchase cost in base currency")
+    x.add_argument("--region", action="append", metavar="REGION=WEIGHT")
+    x.add_argument("--address", help="public on-chain address")
+    x.add_argument("--price-source", dest="price_source")
+    x.add_argument("--date")
     x.add_argument("--note")
     x.add_argument("--remove", action="store_true")
     x.set_defaults(fn=cmd_holding)
 
-    x = sub.add_parser("prices", help="update prices / quantities in bulk")
+    x = sub.add_parser("goal", help="add, update or remove a goal")
+    x.add_argument("file")
+    x.add_argument("--id")
+    x.add_argument("--kind", choices=GOAL_KINDS)
+    x.add_argument("--label")
+    x.add_argument("--view", help="Household or a person's name")
+    x.add_argument("--metric", choices=BUDGET_METRICS + MILESTONE_METRICS)
+    x.add_argument("--unit", choices=["pct", "amount", "months"])
+    x.add_argument("--target")
+    x.add_argument("--from", dest="start", help="YYYY-MM: budget goal counts from this month")
+    x.add_argument("--deadline", help="YYYY-MM-DD (empty to clear)")
+    x.add_argument("--note")
+    x.add_argument("--defaults", action="store_true", help="add the 50/30/20 budget goals and a 3-month emergency fund")
+    x.add_argument("--remove", action="store_true")
+    x.set_defaults(fn=cmd_goal)
+
+    x = sub.add_parser("map", help="map spending categories to Needs, Wants, Loan or Saving")
+    x.add_argument("file")
+    x.add_argument("--set", action="append", metavar="CATEGORY=BUCKET")
+    x.add_argument("--remove", action="append", metavar="CATEGORY")
+    x.set_defaults(fn=cmd_map)
+
+    x = sub.add_parser("prices", help="update prices / quantities / exchange rates")
     x.add_argument("file")
     x.add_argument("--set", action="append", metavar="ID_OR_TICKER=PRICE")
     x.add_argument("--qty", action="append", metavar="ID_OR_TICKER=QUANTITY")
@@ -1037,57 +1838,82 @@ def main(argv=None):
 
     x = sub.add_parser("snapshot", help="record this month's values")
     x.add_argument("file")
-    x.add_argument("--date", help="YYYY-MM-DD (default today)")
-    x.add_argument("--set", action="append", metavar="ACCOUNT=VALUE", help="value in base currency, or e.g. 1200USD with --fx")
+    x.add_argument("--date")
+    x.add_argument("--set", action="append", metavar="ACCOUNT=VALUE")
     x.add_argument("--fx", action="append", metavar="CUR=RATE")
     x.add_argument("--formula", action="append", metavar="ACCOUNT.FIELD=VALUE", help="e.g. car.km=84200")
-    x.add_argument("--contributions", help="net new money into investment accounts since the last snapshot")
+    x.add_argument("--contribution", action="append", metavar="ACCOUNT=AMOUNT", help="money moved into (or, negative, out of) an account since the last update")
+    x.add_argument("--contributions", help="a single total moved into investment accounts (spread by value)")
+    x.add_argument("--gift", action="append", metavar="PERSON=AMOUNT", help="gifts or inheritances received (person id or joint)")
     x.add_argument("--note")
-    x.add_argument("--keep-month", action="store_true", help="add a second snapshot in the same month instead of updating it")
+    x.add_argument("--keep-month", action="store_true")
     x.add_argument("--allow-missing", action="store_true")
-    x.add_argument("--history", action="store_true",
-                   help="past date: use only the values given (plus formulas); no carrying, no current prices")
+    x.add_argument("--history", action="store_true", help="a past date: only the values given, plus formulas")
     x.set_defaults(fn=cmd_snapshot)
 
-    x = sub.add_parser("history", help="import past snapshots from a CSV (date + one column per account)")
+    x = sub.add_parser("history", help="import past snapshots from a CSV (date + one column per account id)")
     x.add_argument("file")
     x.add_argument("csv")
     x.add_argument("--fx", action="append", metavar="CUR=RATE")
     x.set_defaults(fn=cmd_history)
 
-    x = sub.add_parser("budget", help="record a month of income and expenses")
+    x = sub.add_parser("budget", help="record a month of income and spending")
     x.add_argument("file")
-    x.add_argument("--month", required=True, help="YYYY-MM")
+    x.add_argument("--month", required=True)
     x.add_argument("--income", action="append", metavar="CATEGORY=AMOUNT")
     x.add_argument("--expense", action="append", metavar="CATEGORY=AMOUNT")
-    x.add_argument("--json", help='file with {"income": {...}, "expenses": {...}}')
+    x.add_argument("--json", help='{"income": {...}, "expenses": {...}}')
     x.add_argument("--fx", action="append", metavar="CUR=RATE")
     x.add_argument("--note")
-    x.add_argument("--replace", action="store_true", help="replace the month instead of merging")
+    x.add_argument("--replace", action="store_true")
     x.set_defaults(fn=cmd_budget)
 
-    x = sub.add_parser("inflation", help="set inflation index values or a flat rate")
-    x.add_argument("file")
-    x.add_argument("--set", action="append", metavar="YYYY-MM=INDEX")
-    x.add_argument("--rate", help="flat annual rate instead of an index, e.g. 0.02")
-    x.add_argument("--source", help="e.g. 'Eurostat HICP, euro area (2015=100)'")
-    x.add_argument("--off", action="store_true")
-    x.set_defaults(fn=cmd_inflation)
+    for name, fn, h in (("validate", cmd_validate, "check the data"), ("plan", cmd_plan, "what the next update needs"),
+                        ("summary", cmd_summary, "plain-text recap of the latest update"), ("show", cmd_show, "list people, accounts and goals")):
+        x = sub.add_parser(name, help=h)
+        x.add_argument("file")
+        x.set_defaults(fn=fn)
 
-    x = sub.add_parser("plan", help="print the update plan")
+    x = sub.add_parser("datasets", help="write the dashboard's dataset files and a manifest")
     x.add_argument("file")
-    x.set_defaults(fn=cmd_plan)
+    x.add_argument("outdir")
+    x.set_defaults(fn=cmd_datasets)
 
-    x = sub.add_parser("summary", help="print a summary of the latest month")
+    x = sub.add_parser("store", help="write the dashboard's documents for one ArtifactData batch")
     x.add_argument("file")
-    x.set_defaults(fn=cmd_summary)
+    x.add_argument("outdir")
+    x.add_argument("--urls", required=True, help='JSON {dataset: "/_blob/<id>"} of the files you uploaded')
+    x.add_argument("--versions", help='JSON {"datasets/snapshots": 3, ...} of documents that already exist')
+    x.add_argument("--only-changed", action="store_true", help="only datasets listed in --urls (monthly update)")
+    x.add_argument("--only-datasets", action="store_true", help="leave the page, title and filters alone")
+    x.add_argument("--live", choices=["ibkr"], help="add the live IBKR tab and its four live queries")
+    x.add_argument("--connector", default="Interactive Brokers (IBKR)", help="the IBKR connector's name as it appears in your tools")
+    x.add_argument("--by", default="Claude")
+    x.set_defaults(fn=cmd_store)
 
-    x = sub.add_parser("build", help="re-render with the current template")
+    x = sub.add_parser("published", help="record what was published (hashes and file urls)")
     x.add_argument("file")
-    x.add_argument("--target", choices=["artifact", "file"])
-    x.add_argument("--out")
-    x.add_argument("--template", help=argparse.SUPPRESS)
-    x.set_defaults(fn=cmd_build)
+    x.add_argument("--manifest", required=True)
+    x.add_argument("--urls", required=True)
+    x.add_argument("--dashboard-url", dest="dashboard_url")
+    x.add_argument("--live", choices=["ibkr"])
+    x.set_defaults(fn=cmd_published)
+
+    x = sub.add_parser("page", help="write the page document {text} on its own")
+    x.add_argument("out")
+    x.add_argument("--live", choices=["ibkr"])
+    x.set_defaults(fn=cmd_page)
+
+    x = sub.add_parser("standalone", help="write a self-contained HTML dashboard")
+    x.add_argument("file")
+    x.add_argument("out")
+    x.add_argument("--target", choices=["file", "artifact"], default="file")
+    x.set_defaults(fn=cmd_standalone)
+
+    x = sub.add_parser("migrate", help="convert a v1 dashboard page into a v2 state file")
+    x.add_argument("v1")
+    x.add_argument("out")
+    x.set_defaults(fn=cmd_migrate)
 
     a = p.parse_args(argv)
     try:

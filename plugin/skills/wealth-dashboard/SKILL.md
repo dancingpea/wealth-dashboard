@@ -1,188 +1,169 @@
 ---
 name: wealth-dashboard
-description: Guided setup and monthly upkeep of a personal wealth dashboard (net worth over time, accounts, investments with per-holding performance, debts, monthly budget, inflation-adjusted view) as a private page. Use this whenever someone wants to track their net worth, wealth, patrimoine, vermogen, savings, investment portfolio, assets and debts or monthly budget in one place; says things like "set up my wealth dashboard", "track my net worth", "update my dashboard", "add an account to my dashboard"; uploads or links a dashboard made by this skill; or a scheduled task asks for the monthly wealth update. Use it even when they only describe the goal (for example "I want one page that shows everything I own").
+description: Guided setup and monthly upkeep of a private wealth dashboard for a person or household - net worth over time, every account, investments with per-position performance, debts and loan schedules, monthly budget against a 50/30/20 rule, goals with deadlines, a 30-year projection and how you compare with other households by country. Use this whenever someone wants to track their net worth, wealth, patrimoine, vermogen, savings, portfolio, assets and debts or budget in one place; says "set up my wealth dashboard", "update my dashboard", "add an account", "change my goal"; or a scheduled task asks for the monthly wealth update. Use it even when they only describe the goal, like "one page that shows everything we own".
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
   author: "@dancing_pea"
   homepage: "https://github.com/dancingpea/wealth-dashboard"
 ---
 
 # Wealth dashboard
 
-You help one person build a private dashboard of everything they own and owe, then keep it current with
-a short monthly check-in. The person usually knows nothing about dashboards, connectors or scheduling.
-They should only answer plain questions; you do all the plumbing.
+You build one person's or household's private dashboard of everything they own and owe, then keep it current with a
+short monthly check-in. The person usually knows nothing about dashboards, connectors or scheduling. They answer plain
+questions; you do all the plumbing. Settings and goals change when they ask you in chat.
 
-`SKILL_DIR` below means the folder that contains this file. The tool is `python3 SKILL_DIR/scripts/wealth.py`
-(standard library only, Python 3.8+).
+`SKILL_DIR` is the folder holding this file. The tool is `python3 SKILL_DIR/scripts/wealth.py` (standard library only).
+Below, `W` means that command.
 
-## The one idea that makes this work
+## How it fits together
 
-**The dashboard page is its own database.** All data sits inside the HTML page in a
-`<script type="application/json" id="wealth-data">` block. Every `wealth.py` command reads that page,
-changes the data, validates it and re-renders the page with the current template. So:
+- **State file** `wealth.json`: the only source of truth (people, accounts, positions, monthly snapshots, budget,
+  goals, settings). Every `W` command validates and saves it. Never edit numbers into anything else.
+- **Dashboard**: an artifact made from the **Dashboard** artifact type. It holds a fixed page (`files/index.html`,
+  identical for everyone, written by `W store`) and 15 file datasets (`W datasets` writes them from the state). The page
+  computes everything from the datasets, so a change is always: change the state, rewrite the datasets that changed,
+  upload them, point the dataset documents at the new files.
+- **Saved state**: after every change, upload `wealth.json` as an asset of the dashboard and record its url in the
+  dashboard's store document `pipeline/state` (`{state, updated, skill}`). That is how next month's run finds it.
+- **No Dashboard type** (Claude Code in a terminal, or the type isn't offered): `W standalone wealth.json
+  wealth-dashboard.html` makes one self-contained page with the same look and features. Keep it with `wealth.json` in
+  a folder the person chooses, or publish it as a private HTML artifact (`--target artifact`).
 
-- To update the dashboard, get the current page (artifact, local file, or re-uploaded file), run commands on
-  a working copy, then publish or save that same file again.
-- Never hand-edit the HTML or the template, never recompute totals yourself, and never type numbers into the
-  page. Use the commands. For bulk structural edits: `export` to JSON, edit the JSON, `import` it back.
-- The page shows the data; settings (title, language, labels) change how it looks. Do not change the template
-  to personalise a dashboard; that breaks future updates.
+Read `references/publishing.md` before the first publish and before any update: it has the exact calls.
 
 ## Three modes
 
-Work out which one applies from the request:
+1. **Setup**: no dashboard yet. Follow `references/interview.md` (about 15 minutes), build, publish, offer the monthly
+   check-in (`references/scheduling.md`).
+2. **Update**: a scheduled task or "update my dashboard". Follow "Monthly update" below.
+3. **Change**: "add my new savings account", "make my savings goal 25%", "Robin and I split the joint account 60/40",
+   "compare us with Spain too". Load the state, run the matching command, republish the datasets that changed, save
+   the state, confirm in one or two lines.
 
-1. **Setup**: no dashboard yet. Run the guided interview in `references/interview.md`, build, publish, then
-   offer the monthly check-in. Typical length: 10 to 20 minutes.
-2. **Update**: a dashboard exists (a link, a file, a scheduled task, "update my dashboard"). Follow
-   "Monthly update" below.
-3. **Change**: add or close an account, fix a number, change the look, add history, set a goal. Load the
-   page, make the change with the matching command, republish, and confirm in one or two lines.
-
-If you can't tell whether a dashboard exists, ask once: "Do you already have a dashboard from this, or
-shall we set one up?" If it exists but you can't reach it, ask for the link or the file.
+If you can't tell whether a dashboard exists, ask once. Look first: the person's artifacts (Artifact `list`, title
+"Wealth dashboard") and a `wealth.json` in their folders.
 
 ## Ground rules
 
-- **Privacy.** Never ask for or store passwords, PINs, full account numbers, IBANs, card numbers, client
-  numbers or ID numbers. Institution names and balances are all you need. If a screenshot or statement shows
-  account numbers, read only the balances and don't repeat the numbers. Never enter credentials anywhere and
-  never log in to a bank for the user. Connections happen through the person's own connectors, which they
-  authorise themselves.
-- **No advice.** You report and explain; you don't recommend buying, selling or switching products. Factual
-  observations are fine ("cash is 22% of assets", "savings rate dropped to 9% in July"). If asked for advice,
-  say you're not a financial adviser and give the facts that help them decide. The page already carries a
-  "not financial advice" line.
-- **Their language.** Interview in the language they write in. Set `--language` (en, fr, nl, de, es are built
-  in) and a matching `--locale` (for example fr-FR, nl-NL, en-US). For other languages use English plus
-  `settings --set label.<key>=...` overrides (keys are in `references/data-format.md`).
-- **Few questions, batched.** Ask at most 3 or 4 things per message. Use a multiple-choice question tool
-  when you have one; otherwise number the questions. Always say they can answer with screenshots, exports or
-  rough numbers ("about 12k is fine").
-- **Estimates are fine, but visible.** Rough values are better than none. Anything carried over from an
-  earlier month is marked "estimated" on the page automatically.
-- **Confirm before publishing the first version**: show a compact table of accounts, values and how each
-  updates, and let them correct it.
-- **Don't save their figures to chat memory** unless they ask. The dashboard holds the numbers.
-
-## Where the dashboard lives
-
-Pick the first that applies and tell the person in one sentence where their dashboard is.
-
-| Situation | Build with | Keep it at |
-|---|---|---|
-| You have a tool that publishes HTML artifacts/pages with a URL (claude.ai) | `--target artifact` | Publish the page as a private artifact. Store its URL with `settings --set dashboard_url=<url>`. Updates republish to the same URL. |
-| You work on the person's own computer (Claude Code, a connected folder) | `--target file` | A folder they choose, default `~/wealth-dashboard/wealth-dashboard.html`. Offer to put the folder under git or in their cloud drive as a backup. |
-| Neither | `--target file` | Send them the HTML file. Tell them it is their dashboard and their data, to keep it somewhere safe, and to bring it back each month. |
-
-Notes:
-- Artifact pages are private to the person until they share them. Tell them: anyone they share the link
-  with sees their finances; the "Hide amounts" button is for screenshots.
-- On a phone, the artifact link can be added to the home screen and behaves like an app.
-- To read an existing artifact, use the artifact tool's read action on the URL; it gives you the page file.
-  Run `wealth.py` on a copy of that file, then publish the result to the same URL. The page you read back may
-  come wrapped in a full HTML document, so run `$W build <file> --target artifact` right before every publish.
-- Never publish the dashboard to a public website (GitHub Pages, a public gist, a public Notion page).
+- **Privacy.** Never ask for or store passwords, PINs, full account numbers, IBANs, card numbers or ID numbers.
+  Institution names and balances are all you need. Read only balances from screenshots and statements, never repeat
+  account numbers. Never sign in anywhere for the person. Only use connectors they switched on themselves, and only to
+  read. `W validate` warns when text looks like an account number or a seed phrase: remove it.
+- **Their data stays theirs.** The dashboard and its files are private to the person until they share it; tell them
+  that anyone they share it with sees everything on it. Never put their figures in a public place, a message to anyone
+  else, or a web request.
+- **No advice.** Report and explain; don't recommend buying, selling or switching products. Factual observations are
+  fine ("cash covers 11 months of spending"). If asked for advice, say you're not a financial adviser and give the
+  facts that help them decide.
+- **Their language.** Talk in their language. The page itself is in English for now; say so if they write in another
+  language, and offer to name accounts, categories and goals in their language (those labels show on the page).
+- **Few questions, batched.** At most 3 or 4 per message, multiple choice when you can. Rough numbers, screenshots and
+  exports are always fine.
+- **Estimates are visible.** Anything not refreshed this month keeps its value and shows as estimated.
+- **Confirm before the first publish**: a compact table of people, accounts, values and how each updates.
+- Don't save their figures to chat memory unless they ask: the dashboard holds them.
 
 ## Command cheat sheet
 
 ```bash
-W="python3 SKILL_DIR/scripts/wealth.py"
-$W new dash.html --currency EUR --title "Wealth dashboard" --owner "Sam" --language en --locale en-GB --target artifact
-$W account dash.html --id ing-checking --name "Checking" --institution ING --group cash --method statement --source "monthly CSV export"
-$W account dash.html --id broker --name "Brokerage" --institution "Trade Republic" --group invested --method holdings --cash 120
-$W holding dash.html --id vwce --account broker --name "FTSE All-World ETF" --ticker VWCE --isin IE00BK5BQT80 --class equity --quantity 85 --price 141.6 --cost 9800
-$W holding dash.html --id msft --account broker --name Microsoft --ticker MSFT --class equity --quantity 4 --price 512.4 --currency USD --fx 0.86 --cost 1500
-$W account dash.html --id car --name Car --group other --method formula --formula '{"type":"depreciation","purchase_price":24000,"purchase_date":"2023-06-01","annual_rate":0.15}'
-$W account dash.html --id mortgage --name Mortgage --group debt --method formula --formula '{"type":"annuity","principal":280000,"annual_rate":0.038,"years":30,"start":"2022-05-01"}'
-$W prices dash.html --set VWCE=142.3 --set MSFT=518 --fx USD=0.861 --date 2026-10-31 --source "web search, last close"
-$W snapshot dash.html --date 2026-10-31 --set ing-checking=3210.55 --contributions 500 --note "bonus month"
-$W history dash.html past.csv          # backfill: date,<account ids...>,contributions,note
-$W budget dash.html --month 2026-10 --income Salary=4200 --expense Housing=1350 --expense Groceries=480
-$W inflation dash.html --rate 0.02     # or --set 2026-10=129.4 --source "Eurostat HICP, euro area"
-$W settings dash.html --set goal_net_worth=250000 --set goal_by=2030-12-31
-$W plan dash.html      # what the next update needs: automatic vs from the person
-$W summary dash.html   # plain-text recap for your message
-$W validate dash.html
-$W export dash.html --out data.json ; $W import dash.html data.json
-$W build dash.html --target file --out copy.html   # switch format / re-render with the latest template
+W new wealth.json --currency EUR --title "Wealth dashboard"
+W person wealth.json --id sam --name Sam --birth 1989-05 --gross 74000          # one per adult
+W household wealth.json --children-under-14 1 --joint-split sam=0.5,robin=0.5
+W settings wealth.json --set compare_countries=NL,DE,US --set fx.USD=0.862 --set checkin_day=3
+W account wealth.json --id broker --name "Sam's brokerage" --owner sam --group invested --method holdings --institution "Trade Republic"
+W holding wealth.json --id vwce --account broker --name "FTSE All-World ETF" --ticker VWCE --class equity --quantity 85 --price 141.6 --cost 9800 \
+    --region "United States=0.63" --region Europe=0.15 --region "Emerging markets=0.10" --region Japan=0.06 --region "Other developed=0.06"
+W account wealth.json --id pension --name "Sam's pension" --owner sam --group retirement --method ask --monthly-contribution 650
+W account wealth.json --id mortgage --name Mortgage --owner joint --group debt --method formula \
+    --formula '{"type":"annuity","principal":245000,"annual_rate":0.031,"years":30,"start":"2022-10-01"}'
+W account wealth.json --id car --name Car --owner joint --group other --class vehicle --method formula \
+    --formula '{"type":"depreciation","purchase_price":24000,"purchase_date":"2023-06-01","annual_rate":0.15}'
+W prices wealth.json --set VWCE=142.3 --fx USD=0.861 --date 2026-11-03 --source "exchange close"
+W snapshot wealth.json --date 2026-11-03 --set current=3210 --set pension=48200 --contribution broker=950 --gift robin=15000
+W budget wealth.json --month 2026-10 --income "Sam's salary=3480" --expense Groceries=760 --expense "Mortgage payment=1046"
+W map wealth.json --set Groceries=Needs --set "Eating out=Wants" --set "Mortgage payment=Loan" --set "Transfer to savings=Saving"
+W goal wealth.json --defaults                                                     # 50/30/20 + 3 months of cash
+W goal wealth.json --id nw-750k --kind milestone --label "€750k net worth" --metric net_worth --target 750000 --deadline 2031-12-31
+W history wealth.json past.csv          # backfill: date, one column per account id, optional contributions, gift_<person>, note
+W note wealth.json --add "Apartment: our own estimate, updated once a year"
+W validate wealth.json ; W plan wealth.json ; W summary wealth.json ; W show wealth.json
+W datasets wealth.json out/             # 15 files + manifest; prints which changed since the last publish
+W store wealth.json store/ --urls urls.json [--versions versions.json] [--only-changed] [--live ibkr]
+W published wealth.json --manifest out/manifest.json --urls urls.json --dashboard-url <url>
+W standalone wealth.json wealth-dashboard.html [--target artifact]
 ```
 
 Key facts (full schema: `references/data-format.md`):
-- **Groups** (fixed, they drive colours and totals): `invested`, `cash`, `retirement`, `property`, `other`,
-  `debt`. Debts are stored as positive amounts owed.
-- **Methods** say how an account gets its value each month: `connector` (pulled from one of their connected
-  apps), `holdings` (quantity × price per position, prices refreshed automatically), `formula`
-  (depreciation, annuity or linear loan, growth), `fixed`, `statement` (they send an export, statement or
-  screenshot), `ask` (they type the number).
-- `snapshot` keeps one snapshot per month: a second run in the same month updates it. Accounts you don't
-  set are computed (holdings, formulas) or carried forward and flagged "estimated".
-- For past dates use `history` or `snapshot --history`: only the values you give (plus formulas) are used.
-  Include every account that existed then, or it counts as zero (the tool warns you).
-- **Contributions** = net new money the person put into `invested` accounts during the period (deposits
-  minus withdrawals), in base currency. It splits investment growth into "money added" and "market gain".
-  Moving money between their own accounts is not income or spending.
+- **Groups**: `invested`, `cash`, `retirement`, `property`, `other`, `debt`. Debts are entered as positive amounts owed.
+- **Owner**: a person id or `joint`. Joint lines are split between people by `--joint-split` (equal if unset). With one
+  person, owner defaults to them.
+- **Methods**: `connector` (read from their connected app), `holdings` (quantity × price, prices refreshed by you),
+  `formula` (depreciation, annuity or linear loan, growth), `fixed`, `statement` (they send a statement or screenshot),
+  `ask` (they type the number).
+- One snapshot per month: a second `snapshot` in the same month updates it. Accounts you don't set are computed
+  (positions, formulas) or kept from the last month and flagged estimated.
+- **Money moved** is not saving or market gain: record deposits into investment accounts with `--contribution
+  ACCOUNT=AMOUNT` (negative for withdrawals), gifts and inheritances with `--gift`. Pension `--monthly-contribution`
+  is counted automatically. This is what splits each month's change into saved, markets and gifts.
+- **Budget categories** map to `Needs`, `Wants`, `Loan` (debt payments: interest counts as needs, principal as saved,
+  from the loan's schedule) or `Saving` (transfers to savings: not spending). Unmapped categories count as wants.
+- **Exchange rates** are always "base currency per 1 unit": `--fx USD=0.86` when the base is EUR. Keep `fx.EUR` and
+  `fx.USD` current for the comparison section (the monthly `prices --fx` does this).
 
-## Setup flow (summary)
+## Setup (summary)
 
-Full scripts, wording and mapping rules are in `references/interview.md`. Read it before starting a setup.
+Full wording and mapping rules: `references/interview.md`. Where numbers come from: `references/data-sources.md`.
 
-1. **Welcome and scope.** One short message: what they'll get, about 15 minutes, privacy promise. Offer to
-   show the demo first (`$W new demo.html --from SKILL_DIR/assets/demo-data.json`, publish or send it,
-   clearly labelled as invented data). Ask: base currency; what to include; how hands-off they want it.
-2. **Inventory.** Ask them to list every account and asset with a rough value, or drop screenshots. Map to
-   accounts and confirm with a table.
-3. **Detail where it pays off.** Investment positions (for automatic prices and per-holding performance),
-   crypto addresses, gold, property, vehicle, loans, pension. See `references/data-sources.md`.
-4. **Connections.** For each institution, check whether a connector is already available or can be added
-   (search the connector registry if you can). Suggest relevant ones; never require them.
-5. **History and budget** (optional). Backfill past values if they have them. Set up the monthly budget from
-   bank exports, a spreadsheet they already keep, or category totals.
-6. **Extras** (optional). Net worth goal, inflation-adjusted view, contribution tracking.
-7. **Build, confirm, publish.** Create the page, record today's snapshot, validate, publish (or save/send),
-   and give them one paragraph on how to read it.
-8. **Monthly check-in.** Offer the scheduled task (`references/scheduling.md`). Ask which day suits them
-   (a few days after payday works well) and create it. If scheduling isn't available, say so and give them the
-   one sentence to type each month.
+1. **Welcome and scope**: what they'll get, about 15 minutes, the privacy promise. Offer the demo
+   (`references/publishing.md`, "Demo"). Ask: who is in the household (adults, children), base currency, what to
+   include, how hands-off.
+2. **People**: first names, birth year (for age-group comparisons), gross yearly income from work (optional, for
+   income comparisons), how joint money splits.
+3. **Inventory**: every account and asset with a rough value and its owner; map, then confirm with a table.
+4. **Detail where it pays off**: positions (prices then update themselves and each position gets its performance),
+   regions of their funds, crypto address, gold, property, vehicle, loan terms, pension contributions. Check which of
+   their institutions have a connector (search the connector registry if you can) and suggest them; never require.
+5. **History and budget** (optional): past values for the chart; 3 to 12 months of income and spending and the
+   needs/wants map.
+6. **Goals**: start with `W goal --defaults`, then ask for one or two of their own (an amount by a date). Comparison
+   countries (default: where they live plus 2 or 3 they care about).
+7. **Build and publish**: today's snapshot, `W validate`, `W summary` (sanity check), then publish as in
+   `references/publishing.md`. Give them one paragraph on what each tab shows.
+8. **Monthly check-in**: offer it and set it up (`references/scheduling.md`).
 
 ## Monthly update
 
-Used by the scheduled task, or whenever they ask for an update.
+1. **Load**: `pipeline/state` → download the state asset → `W validate`, `W plan` (details in `publishing.md`).
+2. **Automatic first, without asking**: connector balances and positions; latest prices and exchange rates for every
+   position (`W prices`, which also records the price history); on-chain balances; formulas update themselves.
+3. **Provisional snapshot** dated today (`W snapshot`, manual accounts carry over as estimated), publish the changed
+   datasets, save the state. The dashboard is already fresher.
+4. **Ask once, in one message**: two lines of recap from `W summary`, then the checklist from `W plan` (balances,
+   statements, odometer, budget export, money moved). Rough numbers are fine; anything skipped stays estimated.
+5. **When they answer**: update the same snapshot (same month merges), add the budget month, map new categories (ask
+   if unsure), publish changed datasets, save the state, confirm in two lines. Mention anything unusual, without advice.
 
-1. **Load.** Get the current page (artifact read, local file, or ask them to upload it). Run
-   `$W validate` and `$W plan`.
-2. **Do everything automatic first**, without asking:
-   - Connector accounts: pull balances (and positions if the connector gives them; update quantities with
-     `prices --qty`, add new positions with `holding`).
-   - Holdings: look up the latest close for every position (see `references/data-sources.md`), update with
-     `prices --set ... --date ... --fx ...`. Crypto with an address: read the balance from a public block
-     explorer, update the quantity. Never guess a price; if you can't find one, leave it and say so.
-   - Inflation index: add the latest published month if they use an index.
-3. **Save a provisional snapshot** dated today with what you have (`snapshot` without the manual accounts;
-   they carry forward as "estimated"), rebuild and republish so the page is already fresher.
-4. **Ask once, in one message**: a two- or three-line recap (`$W summary`) and a checklist of what you need
-   from them, taken from `plan`: balances, statements or screenshots, odometer, budget export,
-   contributions. Say rough numbers are fine and anything they skip stays estimated.
-5. **When they answer**: update the same snapshot (same month, so it merges), add the budget month, set
-   contributions, validate, republish, and confirm in two lines with the new net worth and the change.
-   Mention anything unusual you noticed (a big move, an old price, a missing account), without advice.
+## Changes
 
-If they don't reply, the provisional update stands. That's fine.
+- Settings, goals, map, people, countries, projection returns: the matching command, then republish the changed
+  datasets (`W datasets` lists them) and save the state. Then confirm what changed and where it shows.
+- New account: `account` then `snapshot --set` its value. Closed account: `account --closed DATE` (keeps history).
+- A wrong past value: `snapshot --date <that date> --history --set ...` with every account for that date.
+- A newer version of this skill changes the page: rewrite only `files/index.html` with `W store ... --only-changed`
+  and an empty urls file (see `publishing.md`, "Upgrade the page"). The data stays as it is.
 
-## Changes and fixes
+## Live broker data (optional)
 
-- New account: `account ... --id <new>`, then `snapshot` with its value (same month merges).
-- Closed account: `account --id X --closed YYYY-MM-DD` (keeps history). Only accounts with no history can be
-  removed (`--remove`).
-- Wrong number this month: `snapshot --set X=<right value>` (same month merges). Wrong number in a past month:
-  `snapshot --date <that date> --history --set ...` with every account for that date, or export, edit, import.
-- Rename, language, title, labels, goal: `settings` and `account` commands.
-- Upgrade the look after a new version of the skill: `build` re-renders with the latest template; data is kept.
+If the person has the Interactive Brokers connector switched on and wants live figures, build the page with
+`--live ibkr`: it adds a "Live IBKR" tab whose four sources are live queries run with each viewer's own IBKR
+connection (positions, balances, 12-month time-weighted return, six months of weekly prices). Before writing them, make
+each call yourself once (`get_account_positions`, `get_account_balances`, `get_pa_performance_all_periods`) to confirm
+the connector works, and pass its name as it appears in your tools with `--connector`. The rest of the dashboard
+still comes from the monthly state (the IBKR account is an ordinary `connector` account there).
 
 ## Finishing a turn
 
-End setup and update turns with: what changed (net worth, change since last time), where the dashboard is
-(one line; the artifact card already carries the link), and the next step if there is one (for example
-"Your next check-in is on the 3rd"). No step-by-step recap of what you did.
+Say what changed (net worth and the change since last time), where the dashboard is (the artifact card carries the
+link), and the next step if there is one ("your next check-in is on the 3rd"). No recap of the steps.

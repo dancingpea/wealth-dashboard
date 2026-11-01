@@ -1,0 +1,3663 @@
+{
+ "schema": "wealth-dashboard/2",
+ "settings": {
+  "title": "Wealth dashboard",
+  "currency": "EUR",
+  "locale": "en-GB",
+  "people": [
+   {
+    "id": "sam",
+    "name": "Sam",
+    "birth_date": "1989-05-12",
+    "gross_income": 74000
+   },
+   {
+    "id": "robin",
+    "name": "Robin",
+    "birth_date": "1991-09-03",
+    "gross_income": 52000
+   }
+  ],
+  "children_under_14": 1,
+  "children_14_plus": 0,
+  "joint_split": {
+   "sam": 0.5,
+   "robin": 0.5
+  },
+  "compare_countries": [
+   "NL",
+   "DE",
+   "FR",
+   "US"
+  ],
+  "fx": {
+   "EUR": 1.0,
+   "USD": 0.862
+  },
+  "projection": {
+   "years": 30,
+   "return_low": 0.03,
+   "return_mid": 0.06,
+   "return_high": 0.09,
+   "inflation": 0.02,
+   "monthly_saving": null
+  },
+  "checkin_day": 3,
+  "notes": [
+   "Apartment: your own estimate, updated once a year from recent sales nearby",
+   "Gold coins: valued at the dealer's buyback price, a little under the market price"
+  ],
+  "created": "2026-11-01",
+  "updated": "2026-11-01",
+  "demo": true
+ },
+ "accounts": [
+  {
+   "id": "sam-broker",
+   "name": "Sam's brokerage",
+   "owner": "sam",
+   "group": "invested",
+   "method": "holdings",
+   "institution": "Lumen Broker",
+   "class": "equity",
+   "category": "Shares and equity funds",
+   "source": "prices looked up each month",
+   "cash": 0.0
+  },
+  {
+   "id": "robin-fund",
+   "name": "Robin's index fund",
+   "owner": "robin",
+   "group": "invested",
+   "method": "holdings",
+   "institution": "Harbor Invest",
+   "class": "equity",
+   "category": "Shares and equity funds",
+   "source": "fund price looked up each month"
+  },
+  {
+   "id": "bitcoin",
+   "name": "Bitcoin wallet",
+   "owner": "sam",
+   "group": "invested",
+   "method": "holdings",
+   "class": "crypto",
+   "category": "Crypto",
+   "source": "public address balance and BTC price"
+  },
+  {
+   "id": "gold",
+   "name": "Gold coins",
+   "owner": "joint",
+   "group": "invested",
+   "method": "holdings",
+   "class": "gold",
+   "category": "Precious metals",
+   "source": "dealer buyback price"
+  },
+  {
+   "id": "sam-pension",
+   "name": "Sam's workplace pension",
+   "owner": "sam",
+   "group": "retirement",
+   "method": "ask",
+   "institution": "Northpoint Pensions",
+   "monthly_contribution": 650,
+   "source": "pension portal, each quarter",
+   "regions": {
+    "United States": 0.66,
+    "Europe": 0.17,
+    "Japan": 0.06,
+    "Other developed": 0.07,
+    "Emerging markets": 0.04
+   }
+  },
+  {
+   "id": "robin-pension",
+   "name": "Robin's pension",
+   "owner": "robin",
+   "group": "retirement",
+   "method": "ask",
+   "institution": "Civic Pension Fund",
+   "monthly_contribution": 430,
+   "source": "yearly statement"
+  },
+  {
+   "id": "current",
+   "name": "Joint current account",
+   "owner": "joint",
+   "group": "cash",
+   "method": "statement",
+   "institution": "Northbank",
+   "source": "monthly export"
+  },
+  {
+   "id": "savings",
+   "name": "Joint savings",
+   "owner": "joint",
+   "group": "cash",
+   "method": "ask",
+   "institution": "Northbank"
+  },
+  {
+   "id": "robin-savings",
+   "name": "Robin's savings",
+   "owner": "robin",
+   "group": "cash",
+   "method": "ask",
+   "institution": "Pebble Bank"
+  },
+  {
+   "id": "apartment",
+   "name": "Apartment",
+   "owner": "joint",
+   "group": "property",
+   "method": "ask",
+   "source": "your estimate, yearly"
+  },
+  {
+   "id": "car",
+   "name": "Car",
+   "owner": "joint",
+   "group": "other",
+   "method": "formula",
+   "class": "vehicle",
+   "formula": {
+    "type": "depreciation",
+    "purchase_price": 26500,
+    "purchase_date": "2022-04-20",
+    "annual_rate": 0.14
+   }
+  },
+  {
+   "id": "mortgage",
+   "name": "Mortgage",
+   "owner": "joint",
+   "group": "debt",
+   "method": "formula",
+   "institution": "Northbank",
+   "class": "mortgage",
+   "category": "Mortgage",
+   "formula": {
+    "type": "annuity",
+    "principal": 245000,
+    "annual_rate": 0.031,
+    "years": 30,
+    "start": "2022-10-01"
+   }
+  },
+  {
+   "id": "student-loan",
+   "name": "Robin's student loan",
+   "owner": "robin",
+   "group": "debt",
+   "method": "formula",
+   "category": "Student loan",
+   "formula": {
+    "type": "linear",
+    "principal": 21000,
+    "annual_rate": 0.005,
+    "years": 15,
+    "start": "2019-01-01"
+   }
+  }
+ ],
+ "holdings": [
+  {
+   "id": "vwce",
+   "account": "sam-broker",
+   "name": "FTSE All-World ETF",
+   "ticker": "VWCE",
+   "isin": "IE00BK5BQT80",
+   "class": "equity",
+   "quantity": 540.0697,
+   "price": 142.1,
+   "currency": "EUR",
+   "cost": 56429.34,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "United States": 0.63,
+    "Europe": 0.15,
+    "Japan": 0.06,
+    "Other developed": 0.06,
+    "Emerging markets": 0.1
+   }
+  },
+  {
+   "id": "cspx",
+   "account": "sam-broker",
+   "name": "S&P 500 ETF",
+   "ticker": "CSPX",
+   "isin": "IE00B5BMR087",
+   "class": "equity",
+   "quantity": 49.5401,
+   "price": 655.4,
+   "currency": "EUR",
+   "cost": 21790.99,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "United States": 1.0
+   }
+  },
+  {
+   "id": "msft",
+   "account": "sam-broker",
+   "name": "Microsoft",
+   "ticker": "MSFT",
+   "isin": "US5949181045",
+   "class": "equity",
+   "quantity": 26.5547,
+   "price": 515.8,
+   "currency": "USD",
+   "fx": 0.862,
+   "cost": 7472.62,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "United States": 1.0
+   }
+  },
+  {
+   "id": "asml",
+   "account": "sam-broker",
+   "name": "ASML Holding",
+   "ticker": "ASML",
+   "isin": "NL0010273215",
+   "class": "equity",
+   "quantity": 19.7253,
+   "price": 748.2,
+   "currency": "EUR",
+   "cost": 15869.32,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "Europe": 1.0
+   }
+  },
+  {
+   "id": "ibgs",
+   "account": "sam-broker",
+   "name": "Euro Government Bond ETF",
+   "ticker": "IBGS",
+   "isin": "IE00B14X4Q57",
+   "class": "bonds",
+   "quantity": 79.8023,
+   "price": 147.95,
+   "currency": "EUR",
+   "cost": 12171.91,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "Europe": 1.0
+   }
+  },
+  {
+   "id": "iwda",
+   "account": "robin-fund",
+   "name": "MSCI World ETF",
+   "ticker": "IWDA",
+   "isin": "IE00B4L5Y983",
+   "class": "equity",
+   "quantity": 413.3062,
+   "price": 112.3,
+   "currency": "EUR",
+   "cost": 37430.88,
+   "price_date": "2026-10-31",
+   "price_source": "exchange close",
+   "regions": {
+    "United States": 0.71,
+    "Europe": 0.16,
+    "Japan": 0.06,
+    "Other developed": 0.07
+   }
+  },
+  {
+   "id": "btc",
+   "account": "bitcoin",
+   "name": "Bitcoin",
+   "ticker": "BTC",
+   "class": "crypto",
+   "quantity": 0.27,
+   "unit": "BTC",
+   "price": 30094.11,
+   "currency": "EUR",
+   "cost": 12400.0,
+   "price_date": "2026-10-31",
+   "price_source": "exchange price",
+   "address": "bc1q-demo-address-not-real"
+  },
+  {
+   "id": "gold-coins",
+   "account": "gold",
+   "name": "Gold coins (1 oz)",
+   "ticker": "XAU",
+   "class": "gold",
+   "quantity": 10.0,
+   "unit": "oz",
+   "price": 3409.26,
+   "currency": "EUR",
+   "cost": 16900.0,
+   "price_date": "2026-10-31",
+   "price_source": "dealer buyback price"
+  }
+ ],
+ "snapshots": [
+  {
+   "date": "2021-04-30",
+   "values": {
+    "sam-broker": 13000.0,
+    "robin-fund": 4000.0,
+    "bitcoin": 15347.1,
+    "gold": 10019.72,
+    "sam-pension": 11000.0,
+    "robin-pension": 7000.0,
+    "current": 3800.0,
+    "savings": 16000.0,
+    "robin-savings": 4200.0,
+    "student-loan": 17733.33
+   }
+  },
+  {
+   "date": "2021-05-31",
+   "values": {
+    "sam-broker": 13882.11,
+    "robin-fund": 4388.37,
+    "bitcoin": 15753.23,
+    "gold": 9884.86,
+    "sam-pension": 11844.42,
+    "robin-pension": 7514.33,
+    "current": 3716.99,
+    "savings": 16897.92,
+    "robin-savings": 4404.52,
+    "student-loan": 17616.67
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-06-30",
+   "values": {
+    "sam-broker": 14943.69,
+    "robin-fund": 4882.87,
+    "bitcoin": 15658.14,
+    "gold": 9707.41,
+    "sam-pension": 12914.38,
+    "robin-pension": 8118.36,
+    "current": 2973.9,
+    "savings": 17714.23,
+    "robin-savings": 4410.19,
+    "student-loan": 17500.0
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-07-31",
+   "values": {
+    "sam-broker": 15416.71,
+    "robin-fund": 5134.16,
+    "bitcoin": 14454.65,
+    "gold": 10011.55,
+    "sam-pension": 13461.31,
+    "robin-pension": 8515.98,
+    "current": 2524.0,
+    "savings": 18503.3,
+    "robin-savings": 4472.58,
+    "student-loan": 17383.33
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-08-31",
+   "values": {
+    "sam-broker": 15816.82,
+    "robin-fund": 5232.16,
+    "bitcoin": 14391.86,
+    "gold": 9791.51,
+    "sam-pension": 13687.62,
+    "robin-pension": 8786.98,
+    "current": 2078.22,
+    "savings": 19672.84,
+    "robin-savings": 4580.8,
+    "student-loan": 17266.67
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-09-30",
+   "values": {
+    "sam-broker": 16729.52,
+    "robin-fund": 5564.29,
+    "bitcoin": 16576.7,
+    "gold": 9780.63,
+    "sam-pension": 14404.87,
+    "robin-pension": 9252.74,
+    "current": 2038.25,
+    "savings": 20902.57,
+    "robin-savings": 4697.16,
+    "student-loan": 17150.0
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-10-31",
+   "values": {
+    "sam-broker": 17997.65,
+    "robin-fund": 6007.34,
+    "bitcoin": 15845.55,
+    "gold": 10144.59,
+    "sam-pension": 15351.13,
+    "robin-pension": 9810.93,
+    "current": 1800.0,
+    "savings": 21863.02,
+    "robin-savings": 4760.93,
+    "student-loan": 17033.33
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-11-30",
+   "values": {
+    "sam-broker": 19478.81,
+    "robin-fund": 6595.9,
+    "bitcoin": 13358.23,
+    "gold": 10614.44,
+    "sam-pension": 16591.04,
+    "robin-pension": 10486.38,
+    "current": 2987.16,
+    "savings": 22576.14,
+    "robin-savings": 4846.11,
+    "student-loan": 16916.67
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2021-12-31",
+   "values": {
+    "sam-broker": 22609.12,
+    "robin-fund": 6663.25,
+    "bitcoin": 11025.6,
+    "gold": 10155.38,
+    "sam-pension": 16772.89,
+    "robin-pension": 10741.93,
+    "current": 1903.04,
+    "savings": 23490.76,
+    "robin-savings": 4905.17,
+    "student-loan": 16800.0
+   },
+   "contributions": {
+    "sam-broker": 3200.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-01-31",
+   "values": {
+    "sam-broker": 23195.45,
+    "robin-fund": 6709.76,
+    "bitcoin": 9360.65,
+    "gold": 10411.08,
+    "sam-pension": 16912.41,
+    "robin-pension": 10978.34,
+    "current": 1897.23,
+    "savings": 24334.22,
+    "robin-savings": 4988.39,
+    "student-loan": 16683.33
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-02-28",
+   "values": {
+    "sam-broker": 24535.46,
+    "robin-fund": 7237.31,
+    "bitcoin": 7549.47,
+    "gold": 11103.55,
+    "sam-pension": 18021.26,
+    "robin-pension": 11605.48,
+    "current": 2597.48,
+    "savings": 25374.54,
+    "robin-savings": 5112.13,
+    "student-loan": 16566.67
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-03-31",
+   "values": {
+    "sam-broker": 25669.21,
+    "robin-fund": 7722.35,
+    "bitcoin": 8907.29,
+    "gold": 11612.64,
+    "sam-pension": 19039.86,
+    "robin-pension": 12195.44,
+    "current": 2007.29,
+    "savings": 26113.97,
+    "robin-savings": 5248.33,
+    "student-loan": 16450.0
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-04-30",
+   "values": {
+    "sam-broker": 27453.61,
+    "robin-fund": 8514.39,
+    "bitcoin": 9515.46,
+    "gold": 11645.12,
+    "sam-pension": 20660.38,
+    "robin-pension": 13026.16,
+    "current": 3720.89,
+    "savings": 26945.45,
+    "robin-savings": 5321.25,
+    "student-loan": 16333.33,
+    "car": 26390.8
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-05-31",
+   "values": {
+    "sam-broker": 29730.91,
+    "robin-fund": 9187.9,
+    "bitcoin": 9319.39,
+    "gold": 11551.73,
+    "sam-pension": 22035.45,
+    "robin-pension": 13754.91,
+    "current": 3272.72,
+    "savings": 27681.16,
+    "robin-savings": 5382.92,
+    "student-loan": 16216.67,
+    "car": 26055.13
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-06-30",
+   "values": {
+    "sam-broker": 30809.61,
+    "robin-fund": 9532.34,
+    "bitcoin": 11499.47,
+    "gold": 11564.48,
+    "sam-pension": 22770.7,
+    "robin-pension": 14231.92,
+    "current": 3169.2,
+    "savings": 28796.24,
+    "robin-savings": 5502.85,
+    "student-loan": 16100.0,
+    "car": 25734.35
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-07-31",
+   "values": {
+    "sam-broker": 31342.19,
+    "robin-fund": 9819.25,
+    "bitcoin": 10537.21,
+    "gold": 11280.17,
+    "sam-pension": 23395.69,
+    "robin-pension": 14666.38,
+    "current": 2851.69,
+    "savings": 29454.0,
+    "robin-savings": 5635.65,
+    "student-loan": 15983.33,
+    "car": 25407.03
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-08-31",
+   "values": {
+    "sam-broker": 34632.42,
+    "robin-fund": 11111.38,
+    "bitcoin": 11885.47,
+    "gold": 11303.44,
+    "sam-pension": 25936.8,
+    "robin-pension": 15851.99,
+    "current": 2872.92,
+    "savings": 30170.04,
+    "robin-savings": 5690.45,
+    "student-loan": 15866.67,
+    "car": 25083.87
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-09-30",
+   "values": {
+    "sam-broker": 35267.36,
+    "robin-fund": 11390.3,
+    "bitcoin": 13491.73,
+    "gold": 11352.97,
+    "sam-pension": 26547.44,
+    "robin-pension": 16282.81,
+    "current": 2883.36,
+    "savings": 6000.0,
+    "robin-savings": 5871.19,
+    "student-loan": 15750.0,
+    "car": 24775.05,
+    "apartment": 298000,
+    "mortgage": 245000.0
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   },
+   "note": "Bought the apartment"
+  },
+  {
+   "date": "2022-10-31",
+   "values": {
+    "sam-broker": 36005.32,
+    "robin-fund": 11465.26,
+    "bitcoin": 10564.81,
+    "gold": 11416.88,
+    "sam-pension": 26777.83,
+    "robin-pension": 16568.23,
+    "current": 3362.01,
+    "savings": 6348.78,
+    "robin-savings": 5971.8,
+    "student-loan": 15633.33,
+    "car": 24459.93,
+    "apartment": 300000,
+    "mortgage": 244586.73
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-11-30",
+   "values": {
+    "sam-broker": 36525.05,
+    "robin-fund": 11392.86,
+    "bitcoin": 8255.92,
+    "gold": 11936.08,
+    "sam-pension": 26732.02,
+    "robin-pension": 16745.73,
+    "current": 3626.4,
+    "savings": 6667.09,
+    "robin-savings": 6222.17,
+    "student-loan": 15516.67,
+    "car": 24158.79,
+    "apartment": 301000,
+    "mortgage": 244172.39
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2022-12-31",
+   "values": {
+    "sam-broker": 40135.07,
+    "robin-fund": 11828.85,
+    "bitcoin": 7231.15,
+    "gold": 11973.02,
+    "sam-pension": 27637.29,
+    "robin-pension": 17292.42,
+    "current": 2873.78,
+    "savings": 6935.52,
+    "robin-savings": 6418.25,
+    "student-loan": 15400.0,
+    "car": 23851.51,
+    "apartment": 301000,
+    "mortgage": 243756.97
+   },
+   "contributions": {
+    "sam-broker": 3200.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-01-31",
+   "values": {
+    "sam-broker": 42364.1,
+    "robin-fund": 12291.28,
+    "bitcoin": 8323.12,
+    "gold": 11569.14,
+    "sam-pension": 28590.89,
+    "robin-pension": 17858.44,
+    "current": 2727.84,
+    "savings": 7455.0,
+    "robin-savings": 6535.62,
+    "student-loan": 15283.33,
+    "car": 23548.13,
+    "apartment": 302000,
+    "mortgage": 243340.49
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-02-28",
+   "values": {
+    "sam-broker": 43688.05,
+    "robin-fund": 12543.16,
+    "bitcoin": 10066.11,
+    "gold": 20082.65,
+    "sam-pension": 29151.34,
+    "robin-pension": 18271.34,
+    "current": 2869.66,
+    "savings": 7723.12,
+    "robin-savings": 6572.79,
+    "student-loan": 15166.67,
+    "car": 23277.44,
+    "apartment": 303000,
+    "mortgage": 242922.93
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0,
+    "gold": 8388.96
+   }
+  },
+  {
+   "date": "2023-03-31",
+   "values": {
+    "sam-broker": 44172.09,
+    "robin-fund": 12921.71,
+    "bitcoin": 8363.57,
+    "gold": 19637.18,
+    "sam-pension": 29947.38,
+    "robin-pension": 18776.82,
+    "current": 2230.18,
+    "savings": 8353.23,
+    "robin-savings": 6731.51,
+    "student-loan": 15050.0,
+    "car": 22981.37,
+    "apartment": 302000,
+    "mortgage": 242504.29
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-04-30",
+   "values": {
+    "sam-broker": 46266.3,
+    "robin-fund": 13458.58,
+    "bitcoin": 9804.46,
+    "gold": 19570.08,
+    "sam-pension": 31036.56,
+    "robin-pension": 19397.7,
+    "current": 2694.22,
+    "savings": 8806.74,
+    "robin-savings": 6885.66,
+    "student-loan": 14933.33,
+    "car": 22698.43,
+    "apartment": 305000,
+    "mortgage": 242084.57
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-05-31",
+   "values": {
+    "sam-broker": 48208.0,
+    "robin-fund": 14208.45,
+    "bitcoin": 9388.21,
+    "gold": 19687.23,
+    "sam-pension": 32516.51,
+    "robin-pension": 20171.29,
+    "current": 3449.62,
+    "savings": 9089.5,
+    "robin-savings": 6992.26,
+    "student-loan": 14816.67,
+    "car": 22409.72,
+    "apartment": 306000,
+    "mortgage": 241663.76
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-06-30",
+   "values": {
+    "sam-broker": 49482.7,
+    "robin-fund": 15190.24,
+    "bitcoin": 8974.95,
+    "gold": 19680.84,
+    "sam-pension": 34414.75,
+    "robin-pension": 21105.42,
+    "current": 4178.25,
+    "savings": 9360.18,
+    "robin-savings": 7032.41,
+    "student-loan": 14700.0,
+    "car": 22133.83,
+    "apartment": 308000,
+    "mortgage": 241241.87
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-07-31",
+   "values": {
+    "sam-broker": 50801.52,
+    "robin-fund": 15734.09,
+    "bitcoin": 8367.62,
+    "gold": 19285.41,
+    "sam-pension": 35506.73,
+    "robin-pension": 21725.93,
+    "current": 4060.15,
+    "savings": 9603.92,
+    "robin-savings": 7189.22,
+    "student-loan": 14583.33,
+    "car": 21852.3,
+    "apartment": 308000,
+    "mortgage": 240818.89
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-08-31",
+   "values": {
+    "sam-broker": 49580.47,
+    "robin-fund": 15154.05,
+    "bitcoin": 8086.47,
+    "gold": 19334.24,
+    "sam-pension": 34567.96,
+    "robin-pension": 21570.07,
+    "current": 3596.05,
+    "savings": 9775.34,
+    "robin-savings": 7289.29,
+    "student-loan": 14466.67,
+    "car": 21574.35,
+    "apartment": 306000,
+    "mortgage": 240394.81
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-09-30",
+   "values": {
+    "sam-broker": 53068.57,
+    "robin-fund": 15965.68,
+    "bitcoin": 6002.18,
+    "gold": 20794.45,
+    "sam-pension": 36151.63,
+    "robin-pension": 22385.76,
+    "current": 4723.09,
+    "savings": 10088.63,
+    "robin-savings": 7418.96,
+    "student-loan": 14350.0,
+    "car": 21308.74,
+    "apartment": 308000,
+    "mortgage": 239969.64
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-10-31",
+   "values": {
+    "sam-broker": 53373.93,
+    "robin-fund": 15585.4,
+    "bitcoin": 5190.77,
+    "gold": 20623.8,
+    "sam-pension": 35569.32,
+    "robin-pension": 22361.23,
+    "current": 4769.56,
+    "savings": 10450.01,
+    "robin-savings": 7594.66,
+    "student-loan": 14233.33,
+    "car": 21037.71,
+    "apartment": 309000,
+    "mortgage": 239543.38
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-11-30",
+   "values": {
+    "sam-broker": 54515.83,
+    "robin-fund": 15921.7,
+    "bitcoin": 4306.54,
+    "gold": 20745.68,
+    "sam-pension": 36285.59,
+    "robin-pension": 22839.63,
+    "current": 5786.61,
+    "savings": 10539.79,
+    "robin-savings": 7796.32,
+    "student-loan": 14116.67,
+    "car": 20778.7,
+    "apartment": 308000,
+    "mortgage": 239116.01
+   },
+   "contributions": {
+    "sam-broker": 700.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2023-12-31",
+   "values": {
+    "sam-broker": 57176.69,
+    "robin-fund": 15512.28,
+    "bitcoin": 4687.99,
+    "gold": 21652.61,
+    "sam-pension": 35642.18,
+    "robin-pension": 22783.64,
+    "current": 5824.3,
+    "savings": 10814.88,
+    "robin-savings": 8060.23,
+    "student-loan": 14000.0,
+    "car": 20514.41,
+    "apartment": 309000,
+    "mortgage": 238687.53
+   },
+   "contributions": {
+    "sam-broker": 3200.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-01-31",
+   "values": {
+    "sam-broker": 57439.3,
+    "robin-fund": 15945.31,
+    "bitcoin": 6227.35,
+    "gold": 22352.86,
+    "sam-pension": 36536.7,
+    "robin-pension": 23334.12,
+    "current": 5745.64,
+    "savings": 11407.16,
+    "robin-savings": 8238.31,
+    "student-loan": 13883.33,
+    "car": 20253.49,
+    "apartment": 308000,
+    "mortgage": 238257.95
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-02-29",
+   "values": {
+    "sam-broker": 58398.52,
+    "robin-fund": 15933.92,
+    "bitcoin": 8872.54,
+    "gold": 23088.25,
+    "sam-pension": 36615.9,
+    "robin-pension": 23559.61,
+    "current": 5064.88,
+    "savings": 11795.53,
+    "robin-savings": 8402.52,
+    "student-loan": 13766.67,
+    "car": 20012.4,
+    "apartment": 309000,
+    "mortgage": 237827.26
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-03-31",
+   "values": {
+    "sam-broker": 60215.41,
+    "robin-fund": 16492.05,
+    "bitcoin": 8557.77,
+    "gold": 23916.32,
+    "sam-pension": 37740.44,
+    "robin-pension": 24204.01,
+    "current": 5017.09,
+    "savings": 11789.61,
+    "robin-savings": 23501.87,
+    "student-loan": 13650.0,
+    "car": 19757.85,
+    "apartment": 310000,
+    "mortgage": 237395.46
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   },
+   "gifts": {
+    "robin": 15000
+   },
+   "note": "Robin's inheritance"
+  },
+  {
+   "date": "2024-04-30",
+   "values": {
+    "sam-broker": 65962.5,
+    "robin-fund": 18891.67,
+    "bitcoin": 6476.47,
+    "gold": 22743.47,
+    "sam-pension": 42234.26,
+    "robin-pension": 26198.93,
+    "current": 4922.96,
+    "savings": 11954.54,
+    "robin-savings": 23731.42,
+    "student-loan": 13533.33,
+    "car": 19514.61,
+    "apartment": 312000,
+    "mortgage": 236962.54
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-05-31",
+   "values": {
+    "sam-broker": 65279.15,
+    "robin-fund": 19319.2,
+    "bitcoin": 6178.18,
+    "gold": 22381.32,
+    "sam-pension": 43112.33,
+    "robin-pension": 26743.55,
+    "current": 4791.88,
+    "savings": 12219.47,
+    "robin-savings": 23833.44,
+    "student-loan": 13416.67,
+    "car": 19266.39,
+    "apartment": 313000,
+    "mortgage": 236528.5
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-06-30",
+   "values": {
+    "sam-broker": 67095.26,
+    "robin-fund": 20369.24,
+    "bitcoin": 5400.4,
+    "gold": 22691.31,
+    "sam-pension": 45101.36,
+    "robin-pension": 27719.44,
+    "current": 4283.38,
+    "savings": 12430.81,
+    "robin-savings": 23959.07,
+    "student-loan": 13300.0,
+    "car": 19029.2,
+    "apartment": 314000,
+    "mortgage": 236093.34
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-07-31",
+   "values": {
+    "sam-broker": 67421.44,
+    "robin-fund": 19871.99,
+    "bitcoin": 7087.98,
+    "gold": 23257.81,
+    "sam-pension": 44339.15,
+    "robin-pension": 27634.69,
+    "current": 4542.63,
+    "savings": 12679.79,
+    "robin-savings": 24073.64,
+    "student-loan": 13183.33,
+    "car": 18787.16,
+    "apartment": 314000,
+    "mortgage": 235657.06
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-08-31",
+   "values": {
+    "sam-broker": 69561.0,
+    "robin-fund": 20134.83,
+    "bitcoin": 7801.37,
+    "gold": 24393.48,
+    "sam-pension": 44922.82,
+    "robin-pension": 28066.49,
+    "current": 3609.54,
+    "savings": 13072.82,
+    "robin-savings": 24148.67,
+    "student-loan": 13066.67,
+    "car": 18548.2,
+    "apartment": 315000,
+    "mortgage": 235219.65
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-09-30",
+   "values": {
+    "sam-broker": 72753.11,
+    "robin-fund": 21086.18,
+    "bitcoin": 7065.7,
+    "gold": 24981.07,
+    "sam-pension": 46735.41,
+    "robin-pension": 28978.52,
+    "current": 3800.0,
+    "savings": 13265.86,
+    "robin-savings": 24237.75,
+    "student-loan": 12950.0,
+    "car": 18319.84,
+    "apartment": 315000,
+    "mortgage": 234781.11
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-10-31",
+   "values": {
+    "sam-broker": 72750.83,
+    "robin-fund": 21495.07,
+    "bitcoin": 8163.47,
+    "gold": 25052.32,
+    "sam-pension": 47578.48,
+    "robin-pension": 29512.32,
+    "current": 3990.53,
+    "savings": 13416.29,
+    "robin-savings": 24505.92,
+    "student-loan": 12833.33,
+    "car": 18086.83,
+    "apartment": 316000,
+    "mortgage": 234341.44
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-11-30",
+   "values": {
+    "sam-broker": 75303.41,
+    "robin-fund": 22264.23,
+    "bitcoin": 8942.13,
+    "gold": 25332.37,
+    "sam-pension": 49059.25,
+    "robin-pension": 30293.91,
+    "current": 4004.84,
+    "savings": 13726.11,
+    "robin-savings": 24581.86,
+    "student-loan": 12716.67,
+    "car": 17864.15,
+    "apartment": 317000,
+    "mortgage": 233900.63
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2024-12-31",
+   "values": {
+    "sam-broker": 80451.62,
+    "robin-fund": 22836.3,
+    "bitcoin": 6896.23,
+    "gold": 25425.27,
+    "sam-pension": 50188.85,
+    "robin-pension": 30939.3,
+    "current": 5161.19,
+    "savings": 14240.14,
+    "robin-savings": 24719.83,
+    "student-loan": 12600.0,
+    "car": 17636.93,
+    "apartment": 319000,
+    "mortgage": 233458.69
+   },
+   "contributions": {
+    "sam-broker": 3450.0,
+    "robin-fund": 300.0
+   }
+  },
+  {
+   "date": "2025-01-31",
+   "values": {
+    "sam-broker": 79710.17,
+    "robin-fund": 22603.26,
+    "bitcoin": 6449.87,
+    "gold": 25867.95,
+    "sam-pension": 49725.83,
+    "robin-pension": 30971.4,
+    "current": 4243.5,
+    "savings": 14489.55,
+    "robin-savings": 24876.78,
+    "student-loan": 12483.33,
+    "car": 17412.6,
+    "apartment": 323000,
+    "mortgage": 233015.6
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-02-28",
+   "values": {
+    "sam-broker": 79913.9,
+    "robin-fund": 23654.11,
+    "bitcoin": 6315.06,
+    "gold": 26649.87,
+    "sam-pension": 51521.3,
+    "robin-pension": 31878.28,
+    "current": 3925.05,
+    "savings": 14643.78,
+    "robin-savings": 24925.53,
+    "student-loan": 12366.67,
+    "car": 17212.44,
+    "apartment": 320000,
+    "mortgage": 232571.36
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-03-31",
+   "values": {
+    "sam-broker": 80447.49,
+    "robin-fund": 23563.69,
+    "bitcoin": 6427.71,
+    "gold": 26644.69,
+    "sam-pension": 51316.75,
+    "robin-pension": 32009.7,
+    "current": 3425.12,
+    "savings": 14965.69,
+    "robin-savings": 25006.61,
+    "student-loan": 12250.0,
+    "car": 16993.51,
+    "apartment": 322000,
+    "mortgage": 232125.98
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-04-30",
+   "values": {
+    "sam-broker": 86829.49,
+    "robin-fund": 25751.78,
+    "bitcoin": 6651.51,
+    "gold": 26260.77,
+    "sam-pension": 55082.01,
+    "robin-pension": 33686.2,
+    "current": 3477.88,
+    "savings": 15676.59,
+    "robin-savings": 25232.99,
+    "student-loan": 12133.33,
+    "car": 16784.29,
+    "apartment": 323000,
+    "mortgage": 231679.45
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-05-31",
+   "values": {
+    "sam-broker": 88175.98,
+    "robin-fund": 25902.31,
+    "bitcoin": 6413.01,
+    "gold": 25849.99,
+    "sam-pension": 55305.13,
+    "robin-pension": 33986.72,
+    "current": 2791.49,
+    "savings": 16044.65,
+    "robin-savings": 25358.21,
+    "student-loan": 12016.67,
+    "car": 16570.81,
+    "apartment": 327000,
+    "mortgage": 231231.77
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-06-30",
+   "values": {
+    "sam-broker": 91004.96,
+    "robin-fund": 27162.25,
+    "bitcoin": 6691.87,
+    "gold": 26959.2,
+    "sam-pension": 57424.01,
+    "robin-pension": 35014.88,
+    "current": 2734.85,
+    "savings": 16510.7,
+    "robin-savings": 25458.27,
+    "student-loan": 11900.0,
+    "car": 16366.8,
+    "apartment": 329000,
+    "mortgage": 230782.93
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-07-31",
+   "values": {
+    "sam-broker": 92705.04,
+    "robin-fund": 27795.43,
+    "bitcoin": 6203.86,
+    "gold": 28264.82,
+    "sam-pension": 58468.38,
+    "robin-pension": 35630.19,
+    "current": 2547.09,
+    "savings": 16778.24,
+    "robin-savings": 25572.25,
+    "student-loan": 11783.33,
+    "car": 16158.62,
+    "apartment": 328000,
+    "mortgage": 230332.92
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-08-31",
+   "values": {
+    "sam-broker": 97720.88,
+    "robin-fund": 29384.73,
+    "bitcoin": 5462.65,
+    "gold": 29388.76,
+    "sam-pension": 61119.75,
+    "robin-pension": 36858.08,
+    "current": 3487.14,
+    "savings": 17206.91,
+    "robin-savings": 25611.77,
+    "student-loan": 11666.67,
+    "car": 15953.1,
+    "apartment": 330000,
+    "mortgage": 229881.76
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-09-30",
+   "values": {
+    "sam-broker": 100769.08,
+    "robin-fund": 29397.51,
+    "bitcoin": 6786.65,
+    "gold": 30438.11,
+    "sam-pension": 61125.43,
+    "robin-pension": 37082.09,
+    "current": 3217.94,
+    "savings": 17415.23,
+    "robin-savings": 25780.73,
+    "student-loan": 11550.0,
+    "car": 15756.69,
+    "apartment": 330000,
+    "mortgage": 229429.43
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-10-31",
+   "values": {
+    "sam-broker": 105272.94,
+    "robin-fund": 31104.5,
+    "bitcoin": 7255.22,
+    "gold": 31503.43,
+    "sam-pension": 63949.5,
+    "robin-pension": 38373.5,
+    "current": 3415.23,
+    "savings": 17859.81,
+    "robin-savings": 25897.01,
+    "student-loan": 11433.33,
+    "car": 15556.28,
+    "apartment": 333000,
+    "mortgage": 228975.93
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-11-30",
+   "values": {
+    "sam-broker": 106365.22,
+    "robin-fund": 31630.15,
+    "bitcoin": 7841.06,
+    "gold": 31816.28,
+    "sam-pension": 64806.17,
+    "robin-pension": 38919.38,
+    "current": 2119.11,
+    "savings": 18242.95,
+    "robin-savings": 26030.66,
+    "student-loan": 11316.67,
+    "car": 15364.76,
+    "apartment": 333000,
+    "mortgage": 228521.27
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2025-12-31",
+   "values": {
+    "sam-broker": 115310.46,
+    "robin-fund": 33737.52,
+    "bitcoin": 6082.73,
+    "gold": 32768.02,
+    "sam-pension": 68254.71,
+    "robin-pension": 40438.71,
+    "current": 2514.73,
+    "savings": 18380.59,
+    "robin-savings": 26155.54,
+    "student-loan": 11200.0,
+    "car": 15169.33,
+    "apartment": 334000,
+    "mortgage": 228065.42
+   },
+   "contributions": {
+    "sam-broker": 3450.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-01-31",
+   "values": {
+    "sam-broker": 117722.75,
+    "robin-fund": 35182.4,
+    "bitcoin": 6022.32,
+    "gold": 32061.44,
+    "sam-pension": 70595.84,
+    "robin-pension": 41535.36,
+    "current": 2073.38,
+    "savings": 18604.4,
+    "robin-savings": 26296.76,
+    "student-loan": 11083.33,
+    "car": 14976.39,
+    "apartment": 335000,
+    "mortgage": 227608.4
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-02-28",
+   "values": {
+    "sam-broker": 121007.56,
+    "robin-fund": 36060.41,
+    "bitcoin": 6852.66,
+    "gold": 32186.7,
+    "sam-pension": 72013.16,
+    "robin-pension": 42289.06,
+    "current": 2360.16,
+    "savings": 18799.46,
+    "robin-savings": 26314.03,
+    "student-loan": 10966.67,
+    "car": 14804.23,
+    "apartment": 336000,
+    "mortgage": 227150.2
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-03-31",
+   "values": {
+    "sam-broker": 120488.53,
+    "robin-fund": 35753.98,
+    "bitcoin": 5628.19,
+    "gold": 31800.08,
+    "sam-pension": 71534.56,
+    "robin-pension": 42347.12,
+    "current": 1800.0,
+    "savings": 19038.91,
+    "robin-savings": 26501.37,
+    "student-loan": 10850.0,
+    "car": 14615.93,
+    "apartment": 336000,
+    "mortgage": 226690.81
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-04-30",
+   "values": {
+    "sam-broker": 124801.42,
+    "robin-fund": 37446.16,
+    "bitcoin": 6639.42,
+    "gold": 32811.61,
+    "sam-pension": 74252.82,
+    "robin-pension": 43584.7,
+    "current": 1801.42,
+    "savings": 19043.7,
+    "robin-savings": 26569.62,
+    "student-loan": 10733.33,
+    "car": 14435.98,
+    "apartment": 335000,
+    "mortgage": 226230.24
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-05-31",
+   "values": {
+    "sam-broker": 129746.81,
+    "robin-fund": 38795.55,
+    "bitcoin": 6351.18,
+    "gold": 32568.84,
+    "sam-pension": 76408.88,
+    "robin-pension": 44610.8,
+    "current": 2136.5,
+    "savings": 19597.87,
+    "robin-savings": 26759.7,
+    "student-loan": 10616.67,
+    "car": 14252.37,
+    "apartment": 337000,
+    "mortgage": 225768.48
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-06-30",
+   "values": {
+    "sam-broker": 139129.92,
+    "robin-fund": 41818.45,
+    "bitcoin": 6830.08,
+    "gold": 32788.84,
+    "sam-pension": 81191.57,
+    "robin-pension": 46593.44,
+    "current": 2433.2,
+    "savings": 19945.47,
+    "robin-savings": 26816.14,
+    "student-loan": 10500.0,
+    "car": 14076.9,
+    "apartment": 339000,
+    "mortgage": 225305.52
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-07-31",
+   "values": {
+    "sam-broker": 141273.16,
+    "robin-fund": 42006.31,
+    "bitcoin": 6796.05,
+    "gold": 33510.56,
+    "sam-pension": 81512.07,
+    "robin-pension": 46951.85,
+    "current": 2156.64,
+    "savings": 20218.84,
+    "robin-savings": 26889.69,
+    "student-loan": 10383.33,
+    "car": 13897.85,
+    "apartment": 340000,
+    "mortgage": 224841.37
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-08-31",
+   "values": {
+    "sam-broker": 144891.92,
+    "robin-fund": 43602.28,
+    "bitcoin": 7120.73,
+    "gold": 35207.61,
+    "sam-pension": 84018.67,
+    "robin-pension": 48097.19,
+    "current": 2241.07,
+    "savings": 20483.86,
+    "robin-savings": 27029.92,
+    "student-loan": 10266.67,
+    "car": 13721.08,
+    "apartment": 340000,
+    "mortgage": 224376.02
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   }
+  },
+  {
+   "date": "2026-09-30",
+   "values": {
+    "sam-broker": 145900.71,
+    "robin-fund": 45170.2,
+    "bitcoin": 8512.9,
+    "gold": 34723.21,
+    "sam-pension": 84018.67,
+    "robin-pension": 49219.45,
+    "current": 3284.89,
+    "savings": 20907.64,
+    "robin-savings": 27174.99,
+    "student-loan": 10150.0,
+    "car": 13552.15,
+    "apartment": 342000,
+    "mortgage": 223909.47
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   },
+   "carried": [
+    "sam-pension"
+   ]
+  },
+  {
+   "date": "2026-10-31",
+   "values": {
+    "sam-broker": 147584.43,
+    "robin-fund": 46414.29,
+    "bitcoin": 8125.41,
+    "gold": 34092.55,
+    "sam-pension": 84018.67,
+    "robin-pension": 50158.55,
+    "current": 3156.35,
+    "savings": 21014.85,
+    "robin-savings": 27288.15,
+    "student-loan": 10033.33,
+    "car": 13379.78,
+    "apartment": 343000,
+    "mortgage": 223441.71
+   },
+   "contributions": {
+    "sam-broker": 950.0,
+    "robin-fund": 400.0
+   },
+   "carried": [
+    "sam-pension"
+   ]
+  }
+ ],
+ "prices": [
+  {
+   "holding": "asml",
+   "date": "2024-05-31",
+   "price": 600.96
+  },
+  {
+   "holding": "asml",
+   "date": "2024-06-30",
+   "price": 566.66
+  },
+  {
+   "holding": "asml",
+   "date": "2024-07-31",
+   "price": 624.72
+  },
+  {
+   "holding": "asml",
+   "date": "2024-08-31",
+   "price": 708.61
+  },
+  {
+   "holding": "asml",
+   "date": "2024-09-30",
+   "price": 653.63
+  },
+  {
+   "holding": "asml",
+   "date": "2024-10-31",
+   "price": 585.62
+  },
+  {
+   "holding": "asml",
+   "date": "2024-11-30",
+   "price": 630.69
+  },
+  {
+   "holding": "asml",
+   "date": "2024-12-31",
+   "price": 677.98
+  },
+  {
+   "holding": "asml",
+   "date": "2025-01-31",
+   "price": 635.27
+  },
+  {
+   "holding": "asml",
+   "date": "2025-02-28",
+   "price": 609.18
+  },
+  {
+   "holding": "asml",
+   "date": "2025-03-31",
+   "price": 584.18
+  },
+  {
+   "holding": "asml",
+   "date": "2025-04-30",
+   "price": 538.49
+  },
+  {
+   "holding": "asml",
+   "date": "2025-05-31",
+   "price": 516.94
+  },
+  {
+   "holding": "asml",
+   "date": "2025-06-30",
+   "price": 571.12
+  },
+  {
+   "holding": "asml",
+   "date": "2025-07-31",
+   "price": 606.94
+  },
+  {
+   "holding": "asml",
+   "date": "2025-08-31",
+   "price": 707.24
+  },
+  {
+   "holding": "asml",
+   "date": "2025-09-30",
+   "price": 710.44
+  },
+  {
+   "holding": "asml",
+   "date": "2025-10-31",
+   "price": 711.04
+  },
+  {
+   "holding": "asml",
+   "date": "2025-11-30",
+   "price": 666.47
+  },
+  {
+   "holding": "asml",
+   "date": "2025-12-31",
+   "price": 667.61
+  },
+  {
+   "holding": "asml",
+   "date": "2026-01-31",
+   "price": 609.21
+  },
+  {
+   "holding": "asml",
+   "date": "2026-02-28",
+   "price": 534.7
+  },
+  {
+   "holding": "asml",
+   "date": "2026-03-31",
+   "price": 568.53
+  },
+  {
+   "holding": "asml",
+   "date": "2026-04-30",
+   "price": 636.19
+  },
+  {
+   "holding": "asml",
+   "date": "2026-05-31",
+   "price": 683.12
+  },
+  {
+   "holding": "asml",
+   "date": "2026-06-30",
+   "price": 758.9
+  },
+  {
+   "holding": "asml",
+   "date": "2026-07-31",
+   "price": 781.61
+  },
+  {
+   "holding": "asml",
+   "date": "2026-08-31",
+   "price": 748.11
+  },
+  {
+   "holding": "asml",
+   "date": "2026-09-30",
+   "price": 761.18
+  },
+  {
+   "holding": "asml",
+   "date": "2026-10-31",
+   "price": 748.2
+  },
+  {
+   "holding": "btc",
+   "date": "2024-05-31",
+   "price": 22882.14
+  },
+  {
+   "holding": "btc",
+   "date": "2024-06-30",
+   "price": 20001.46
+  },
+  {
+   "holding": "btc",
+   "date": "2024-07-31",
+   "price": 26251.78
+  },
+  {
+   "holding": "btc",
+   "date": "2024-08-31",
+   "price": 28893.94
+  },
+  {
+   "holding": "btc",
+   "date": "2024-09-30",
+   "price": 26169.23
+  },
+  {
+   "holding": "btc",
+   "date": "2024-10-31",
+   "price": 30235.07
+  },
+  {
+   "holding": "btc",
+   "date": "2024-11-30",
+   "price": 33118.98
+  },
+  {
+   "holding": "btc",
+   "date": "2024-12-31",
+   "price": 25541.58
+  },
+  {
+   "holding": "btc",
+   "date": "2025-01-31",
+   "price": 23888.41
+  },
+  {
+   "holding": "btc",
+   "date": "2025-02-28",
+   "price": 23389.1
+  },
+  {
+   "holding": "btc",
+   "date": "2025-03-31",
+   "price": 23806.31
+  },
+  {
+   "holding": "btc",
+   "date": "2025-04-30",
+   "price": 24635.19
+  },
+  {
+   "holding": "btc",
+   "date": "2025-05-31",
+   "price": 23751.89
+  },
+  {
+   "holding": "btc",
+   "date": "2025-06-30",
+   "price": 24784.69
+  },
+  {
+   "holding": "btc",
+   "date": "2025-07-31",
+   "price": 22977.26
+  },
+  {
+   "holding": "btc",
+   "date": "2025-08-31",
+   "price": 20232.02
+  },
+  {
+   "holding": "btc",
+   "date": "2025-09-30",
+   "price": 25135.72
+  },
+  {
+   "holding": "btc",
+   "date": "2025-10-31",
+   "price": 26871.17
+  },
+  {
+   "holding": "btc",
+   "date": "2025-11-30",
+   "price": 29040.93
+  },
+  {
+   "holding": "btc",
+   "date": "2025-12-31",
+   "price": 22528.61
+  },
+  {
+   "holding": "btc",
+   "date": "2026-01-31",
+   "price": 22304.89
+  },
+  {
+   "holding": "btc",
+   "date": "2026-02-28",
+   "price": 25380.19
+  },
+  {
+   "holding": "btc",
+   "date": "2026-03-31",
+   "price": 20845.15
+  },
+  {
+   "holding": "btc",
+   "date": "2026-04-30",
+   "price": 24590.43
+  },
+  {
+   "holding": "btc",
+   "date": "2026-05-31",
+   "price": 23522.87
+  },
+  {
+   "holding": "btc",
+   "date": "2026-06-30",
+   "price": 25296.57
+  },
+  {
+   "holding": "btc",
+   "date": "2026-07-31",
+   "price": 25170.55
+  },
+  {
+   "holding": "btc",
+   "date": "2026-08-31",
+   "price": 26373.06
+  },
+  {
+   "holding": "btc",
+   "date": "2026-09-30",
+   "price": 31529.23
+  },
+  {
+   "holding": "btc",
+   "date": "2026-10-31",
+   "price": 30094.11
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-05-31",
+   "price": 371.53
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-06-30",
+   "price": 361.1
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-07-31",
+   "price": 368.31
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-08-31",
+   "price": 380.16
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-09-30",
+   "price": 408.68
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-10-31",
+   "price": 395.53
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-11-30",
+   "price": 399.52
+  },
+  {
+   "holding": "cspx",
+   "date": "2024-12-31",
+   "price": 414.4
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-01-31",
+   "price": 415.8
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-02-28",
+   "price": 378.58
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-03-31",
+   "price": 395.18
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-04-30",
+   "price": 437.51
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-05-31",
+   "price": 460.34
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-06-30",
+   "price": 447.21
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-07-31",
+   "price": 443.94
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-08-31",
+   "price": 452.51
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-09-30",
+   "price": 504.34
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-10-31",
+   "price": 522.46
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-11-30",
+   "price": 530.18
+  },
+  {
+   "holding": "cspx",
+   "date": "2025-12-31",
+   "price": 570.17
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-01-31",
+   "price": 573.91
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-02-28",
+   "price": 624.52
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-03-31",
+   "price": 612.79
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-04-30",
+   "price": 606.7
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-05-31",
+   "price": 631.14
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-06-30",
+   "price": 675.21
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-07-31",
+   "price": 700.5
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-08-31",
+   "price": 716.38
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-09-30",
+   "price": 668.73
+  },
+  {
+   "holding": "cspx",
+   "date": "2026-10-31",
+   "price": 655.4
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-05-31",
+   "price": 2238.14
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-06-30",
+   "price": 2269.13
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-07-31",
+   "price": 2325.78
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-08-31",
+   "price": 2439.35
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-09-30",
+   "price": 2498.11
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-10-31",
+   "price": 2505.24
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-11-30",
+   "price": 2533.24
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2024-12-31",
+   "price": 2542.53
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-01-31",
+   "price": 2586.8
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-02-28",
+   "price": 2664.99
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-03-31",
+   "price": 2664.47
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-04-30",
+   "price": 2626.08
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-05-31",
+   "price": 2585.0
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-06-30",
+   "price": 2695.92
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-07-31",
+   "price": 2826.49
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-08-31",
+   "price": 2938.88
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-09-30",
+   "price": 3043.82
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-10-31",
+   "price": 3150.35
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-11-30",
+   "price": 3181.63
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2025-12-31",
+   "price": 3276.81
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-01-31",
+   "price": 3206.15
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-02-28",
+   "price": 3218.67
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-03-31",
+   "price": 3180.01
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-04-30",
+   "price": 3281.17
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-05-31",
+   "price": 3256.89
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-06-30",
+   "price": 3278.89
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-07-31",
+   "price": 3351.06
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-08-31",
+   "price": 3520.77
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-09-30",
+   "price": 3472.33
+  },
+  {
+   "holding": "gold-coins",
+   "date": "2026-10-31",
+   "price": 3409.26
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-05-31",
+   "price": 149.07
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-06-30",
+   "price": 152.38
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-07-31",
+   "price": 154.56
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-08-31",
+   "price": 154.52
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-09-30",
+   "price": 155.12
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-10-31",
+   "price": 155.52
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-11-30",
+   "price": 156.08
+  },
+  {
+   "holding": "ibgs",
+   "date": "2024-12-31",
+   "price": 155.88
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-01-31",
+   "price": 155.44
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-02-28",
+   "price": 153.29
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-03-31",
+   "price": 152.29
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-04-30",
+   "price": 155.49
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-05-31",
+   "price": 156.68
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-06-30",
+   "price": 156.99
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-07-31",
+   "price": 156.77
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-08-31",
+   "price": 157.07
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-09-30",
+   "price": 157.93
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-10-31",
+   "price": 156.89
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-11-30",
+   "price": 157.45
+  },
+  {
+   "holding": "ibgs",
+   "date": "2025-12-31",
+   "price": 158.1
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-01-31",
+   "price": 156.86
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-02-28",
+   "price": 155.57
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-03-31",
+   "price": 153.89
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-04-30",
+   "price": 152.11
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-05-31",
+   "price": 153.92
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-06-30",
+   "price": 149.74
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-07-31",
+   "price": 149.44
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-08-31",
+   "price": 148.53
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-09-30",
+   "price": 147.6
+  },
+  {
+   "holding": "ibgs",
+   "date": "2026-10-31",
+   "price": 147.95
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-05-31",
+   "price": 68.26
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-06-30",
+   "price": 70.91
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-07-31",
+   "price": 68.14
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-08-31",
+   "price": 68.01
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-09-30",
+   "price": 70.21
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-10-31",
+   "price": 70.57
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-11-30",
+   "price": 72.11
+  },
+  {
+   "holding": "iwda",
+   "date": "2024-12-31",
+   "price": 72.99
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-01-31",
+   "price": 70.97
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-02-28",
+   "price": 73.02
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-03-31",
+   "price": 71.5
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-04-30",
+   "price": 76.93
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-05-31",
+   "price": 76.18
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-06-30",
+   "price": 78.71
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-07-31",
+   "price": 79.39
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-08-31",
+   "price": 82.78
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-09-30",
+   "price": 81.69
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-10-31",
+   "price": 85.32
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-11-30",
+   "price": 85.67
+  },
+  {
+   "holding": "iwda",
+   "date": "2025-12-31",
+   "price": 90.29
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-01-31",
+   "price": 93.09
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-02-28",
+   "price": 94.35
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-03-31",
+   "price": 92.51
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-04-30",
+   "price": 95.85
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-05-31",
+   "price": 98.28
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-06-30",
+   "price": 104.92
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-07-31",
+   "price": 104.39
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-08-31",
+   "price": 107.36
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-09-30",
+   "price": 110.24
+  },
+  {
+   "holding": "iwda",
+   "date": "2026-10-31",
+   "price": 112.3
+  },
+  {
+   "holding": "msft",
+   "date": "2024-05-31",
+   "price": 292.4
+  },
+  {
+   "holding": "msft",
+   "date": "2024-06-30",
+   "price": 284.19
+  },
+  {
+   "holding": "msft",
+   "date": "2024-07-31",
+   "price": 289.86
+  },
+  {
+   "holding": "msft",
+   "date": "2024-08-31",
+   "price": 299.19
+  },
+  {
+   "holding": "msft",
+   "date": "2024-09-30",
+   "price": 321.63
+  },
+  {
+   "holding": "msft",
+   "date": "2024-10-31",
+   "price": 311.28
+  },
+  {
+   "holding": "msft",
+   "date": "2024-11-30",
+   "price": 314.42
+  },
+  {
+   "holding": "msft",
+   "date": "2024-12-31",
+   "price": 326.13
+  },
+  {
+   "holding": "msft",
+   "date": "2025-01-31",
+   "price": 327.24
+  },
+  {
+   "holding": "msft",
+   "date": "2025-02-28",
+   "price": 297.94
+  },
+  {
+   "holding": "msft",
+   "date": "2025-03-31",
+   "price": 311.01
+  },
+  {
+   "holding": "msft",
+   "date": "2025-04-30",
+   "price": 344.32
+  },
+  {
+   "holding": "msft",
+   "date": "2025-05-31",
+   "price": 362.29
+  },
+  {
+   "holding": "msft",
+   "date": "2025-06-30",
+   "price": 351.95
+  },
+  {
+   "holding": "msft",
+   "date": "2025-07-31",
+   "price": 349.38
+  },
+  {
+   "holding": "msft",
+   "date": "2025-08-31",
+   "price": 356.13
+  },
+  {
+   "holding": "msft",
+   "date": "2025-09-30",
+   "price": 396.92
+  },
+  {
+   "holding": "msft",
+   "date": "2025-10-31",
+   "price": 411.18
+  },
+  {
+   "holding": "msft",
+   "date": "2025-11-30",
+   "price": 417.25
+  },
+  {
+   "holding": "msft",
+   "date": "2025-12-31",
+   "price": 448.72
+  },
+  {
+   "holding": "msft",
+   "date": "2026-01-31",
+   "price": 451.67
+  },
+  {
+   "holding": "msft",
+   "date": "2026-02-28",
+   "price": 491.49
+  },
+  {
+   "holding": "msft",
+   "date": "2026-03-31",
+   "price": 482.27
+  },
+  {
+   "holding": "msft",
+   "date": "2026-04-30",
+   "price": 477.47
+  },
+  {
+   "holding": "msft",
+   "date": "2026-05-31",
+   "price": 496.71
+  },
+  {
+   "holding": "msft",
+   "date": "2026-06-30",
+   "price": 531.39
+  },
+  {
+   "holding": "msft",
+   "date": "2026-07-31",
+   "price": 551.3
+  },
+  {
+   "holding": "msft",
+   "date": "2026-08-31",
+   "price": 563.79
+  },
+  {
+   "holding": "msft",
+   "date": "2026-09-30",
+   "price": 526.29
+  },
+  {
+   "holding": "msft",
+   "date": "2026-10-31",
+   "price": 515.8
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-05-31",
+   "price": 86.38
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-06-30",
+   "price": 89.73
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-07-31",
+   "price": 86.22
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-08-31",
+   "price": 86.06
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-09-30",
+   "price": 88.84
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-10-31",
+   "price": 89.3
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-11-30",
+   "price": 91.25
+  },
+  {
+   "holding": "vwce",
+   "date": "2024-12-31",
+   "price": 92.36
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-01-31",
+   "price": 89.8
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-02-28",
+   "price": 92.39
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-03-31",
+   "price": 90.47
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-04-30",
+   "price": 97.34
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-05-31",
+   "price": 96.4
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-06-30",
+   "price": 99.6
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-07-31",
+   "price": 100.45
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-08-31",
+   "price": 104.75
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-09-30",
+   "price": 103.37
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-10-31",
+   "price": 107.97
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-11-30",
+   "price": 108.4
+  },
+  {
+   "holding": "vwce",
+   "date": "2025-12-31",
+   "price": 114.25
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-01-31",
+   "price": 117.79
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-02-28",
+   "price": 119.39
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-03-31",
+   "price": 117.05
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-04-30",
+   "price": 121.28
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-05-31",
+   "price": 124.36
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-06-30",
+   "price": 132.77
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-07-31",
+   "price": 132.09
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-08-31",
+   "price": 135.85
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-09-30",
+   "price": 139.49
+  },
+  {
+   "holding": "vwce",
+   "date": "2026-10-31",
+   "price": 142.1
+  }
+ ],
+ "budget": {
+  "months": [
+   {
+    "month": "2024-11",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 122.01,
+     "Utilities": 268,
+     "Groceries": 706,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 206,
+     "Phone and internet": 92,
+     "Eating out": 461,
+     "Shopping": 505,
+     "Subscriptions": 58,
+     "Sports and hobbies": 170,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2024-12",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290,
+     "Bonus": 3200
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.97,
+     "Utilities": 245,
+     "Groceries": 785,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 233,
+     "Phone and internet": 92,
+     "Eating out": 328,
+     "Shopping": 420,
+     "Subscriptions": 58,
+     "Sports and hobbies": 172,
+     "Transfer to savings": 400,
+     "Gifts": 365
+    }
+   },
+   {
+    "month": "2025-01",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.92,
+     "Utilities": 239,
+     "Groceries": 705,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 245,
+     "Phone and internet": 92,
+     "Eating out": 352,
+     "Shopping": 317,
+     "Subscriptions": 58,
+     "Sports and hobbies": 128,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-02",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.87,
+     "Utilities": 277,
+     "Groceries": 741,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 215,
+     "Phone and internet": 92,
+     "Eating out": 478,
+     "Shopping": 660,
+     "Subscriptions": 58,
+     "Sports and hobbies": 94,
+     "Transfer to savings": 400,
+     "Travel": 330
+    }
+   },
+   {
+    "month": "2025-03",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.82,
+     "Utilities": 255,
+     "Groceries": 814,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 281,
+     "Phone and internet": 92,
+     "Eating out": 493,
+     "Shopping": 252,
+     "Subscriptions": 58,
+     "Sports and hobbies": 126,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-04",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290,
+     "Refunds and other": 89
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.77,
+     "Utilities": 269,
+     "Groceries": 802,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 202,
+     "Phone and internet": 92,
+     "Eating out": 436,
+     "Shopping": 292,
+     "Subscriptions": 58,
+     "Sports and hobbies": 149,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-05",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290,
+     "Holiday allowance": 3900
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.72,
+     "Utilities": 228,
+     "Groceries": 778,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 263,
+     "Phone and internet": 92,
+     "Eating out": 480,
+     "Shopping": 417,
+     "Subscriptions": 58,
+     "Sports and hobbies": 101,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-06",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.67,
+     "Utilities": 249,
+     "Groceries": 737,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 291,
+     "Phone and internet": 92,
+     "Eating out": 461,
+     "Shopping": 677,
+     "Subscriptions": 58,
+     "Sports and hobbies": 109,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-07",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.62,
+     "Utilities": 278,
+     "Groceries": 785,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 307,
+     "Phone and internet": 92,
+     "Eating out": 522,
+     "Shopping": 699,
+     "Subscriptions": 58,
+     "Sports and hobbies": 137,
+     "Transfer to savings": 400,
+     "Travel": 1676
+    }
+   },
+   {
+    "month": "2025-08",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.58,
+     "Utilities": 274,
+     "Groceries": 716,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 249,
+     "Phone and internet": 92,
+     "Eating out": 270,
+     "Shopping": 591,
+     "Subscriptions": 58,
+     "Sports and hobbies": 179,
+     "Transfer to savings": 400,
+     "Travel": 1513
+    }
+   },
+   {
+    "month": "2025-09",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290,
+     "Refunds and other": 134
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.53,
+     "Utilities": 244,
+     "Groceries": 693,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 326,
+     "Phone and internet": 92,
+     "Eating out": 240,
+     "Shopping": 374,
+     "Subscriptions": 58,
+     "Sports and hobbies": 74,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2025-10",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.48,
+     "Utilities": 224,
+     "Groceries": 651,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 254,
+     "Phone and internet": 92,
+     "Eating out": 419,
+     "Shopping": 675,
+     "Subscriptions": 58,
+     "Sports and hobbies": 64,
+     "Transfer to savings": 400,
+     "Travel": 215
+    }
+   },
+   {
+    "month": "2025-11",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.43,
+     "Utilities": 229,
+     "Groceries": 769,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 273,
+     "Phone and internet": 92,
+     "Eating out": 296,
+     "Shopping": 312,
+     "Subscriptions": 58,
+     "Sports and hobbies": 94,
+     "Transfer to savings": 400,
+     "Travel": 415
+    }
+   },
+   {
+    "month": "2025-12",
+    "income": {
+     "Sam's salary": 3480,
+     "Robin's salary": 2520,
+     "Child benefit": 290,
+     "Bonus": 3200
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.38,
+     "Utilities": 254,
+     "Groceries": 787,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 257,
+     "Phone and internet": 92,
+     "Eating out": 309,
+     "Shopping": 664,
+     "Subscriptions": 58,
+     "Sports and hobbies": 170,
+     "Transfer to savings": 400,
+     "Gifts": 442
+    }
+   },
+   {
+    "month": "2026-01",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.33,
+     "Utilities": 249,
+     "Groceries": 680,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 197,
+     "Phone and internet": 92,
+     "Eating out": 542,
+     "Shopping": 621,
+     "Subscriptions": 58,
+     "Sports and hobbies": 106,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2026-02",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.28,
+     "Utilities": 232,
+     "Groceries": 818,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 282,
+     "Phone and internet": 92,
+     "Eating out": 301,
+     "Shopping": 225,
+     "Subscriptions": 58,
+     "Sports and hobbies": 117,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2026-03",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.24,
+     "Utilities": 267,
+     "Groceries": 749,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 212,
+     "Phone and internet": 92,
+     "Eating out": 273,
+     "Shopping": 381,
+     "Subscriptions": 58,
+     "Sports and hobbies": 91,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2026-04",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.19,
+     "Utilities": 261,
+     "Groceries": 819,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 227,
+     "Phone and internet": 92,
+     "Eating out": 402,
+     "Shopping": 295,
+     "Subscriptions": 58,
+     "Sports and hobbies": 152,
+     "Transfer to savings": 400,
+     "Travel": 437
+    }
+   },
+   {
+    "month": "2026-05",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290,
+     "Holiday allowance": 3900
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.14,
+     "Utilities": 276,
+     "Groceries": 655,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 228,
+     "Phone and internet": 92,
+     "Eating out": 464,
+     "Shopping": 269,
+     "Subscriptions": 58,
+     "Sports and hobbies": 118,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2026-06",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.09,
+     "Utilities": 257,
+     "Groceries": 794,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 233,
+     "Phone and internet": 92,
+     "Eating out": 488,
+     "Shopping": 428,
+     "Subscriptions": 58,
+     "Sports and hobbies": 170,
+     "Transfer to savings": 400,
+     "Travel": 439
+    }
+   },
+   {
+    "month": "2026-07",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 121.04,
+     "Utilities": 253,
+     "Groceries": 735,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 212,
+     "Phone and internet": 92,
+     "Eating out": 503,
+     "Shopping": 376,
+     "Subscriptions": 58,
+     "Sports and hobbies": 97,
+     "Transfer to savings": 400,
+     "Travel": 1184
+    }
+   },
+   {
+    "month": "2026-08",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 120.99,
+     "Utilities": 247,
+     "Groceries": 769,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 240,
+     "Phone and internet": 92,
+     "Eating out": 454,
+     "Shopping": 273,
+     "Subscriptions": 58,
+     "Sports and hobbies": 107,
+     "Transfer to savings": 400,
+     "Travel": 1608
+    }
+   },
+   {
+    "month": "2026-09",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 120.94,
+     "Utilities": 276,
+     "Groceries": 758,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 192,
+     "Phone and internet": 92,
+     "Eating out": 348,
+     "Shopping": 575,
+     "Subscriptions": 58,
+     "Sports and hobbies": 88,
+     "Transfer to savings": 400
+    }
+   },
+   {
+    "month": "2026-10",
+    "income": {
+     "Sam's salary": 3619,
+     "Robin's salary": 2621,
+     "Child benefit": 290
+    },
+    "expenses": {
+     "Mortgage payment": 1046.19,
+     "Student loan": 120.9,
+     "Utilities": 211,
+     "Groceries": 818,
+     "Insurance": 265,
+     "Childcare": 980,
+     "Transport": 302,
+     "Phone and internet": 92,
+     "Eating out": 290,
+     "Shopping": 528,
+     "Subscriptions": 58,
+     "Sports and hobbies": 95,
+     "Transfer to savings": 400
+    }
+   }
+  ]
+ },
+ "budget_map": {
+  "Mortgage payment": "Loan",
+  "Student loan": "Loan",
+  "Utilities": "Needs",
+  "Groceries": "Needs",
+  "Insurance": "Needs",
+  "Childcare": "Needs",
+  "Transport": "Needs",
+  "Phone and internet": "Needs",
+  "Eating out": "Wants",
+  "Shopping": "Wants",
+  "Subscriptions": "Wants",
+  "Sports and hobbies": "Wants",
+  "Travel": "Wants",
+  "Gifts": "Wants",
+  "Transfer to savings": "Saving"
+ },
+ "goals": [
+  {
+   "id": "needs",
+   "kind": "budget",
+   "label": "Needs",
+   "view": "Household",
+   "metric": "needs",
+   "unit": "pct",
+   "target": 50,
+   "from": "",
+   "deadline": "",
+   "note": "50/30/20 rule: essentials at most half of income"
+  },
+  {
+   "id": "wants",
+   "kind": "budget",
+   "label": "Wants",
+   "view": "Household",
+   "metric": "wants",
+   "unit": "pct",
+   "target": 30,
+   "from": "",
+   "deadline": "",
+   "note": "50/30/20 rule: everything you choose to spend at most 30%"
+  },
+  {
+   "id": "savings",
+   "kind": "budget",
+   "label": "Savings",
+   "view": "Household",
+   "metric": "savings",
+   "unit": "pct",
+   "target": 20,
+   "from": "",
+   "deadline": "",
+   "note": "50/30/20 rule: keep at least 20% of income"
+  },
+  {
+   "id": "emergency-fund",
+   "kind": "milestone",
+   "label": "Emergency fund",
+   "view": "Household",
+   "metric": "cash_months",
+   "unit": "months",
+   "target": 3,
+   "from": "",
+   "deadline": "",
+   "note": "Cash covering at least 3 months of spending"
+  },
+  {
+   "id": "net-worth-750k",
+   "kind": "milestone",
+   "label": "€750k net worth",
+   "view": "Household",
+   "metric": "net_worth",
+   "unit": "amount",
+   "target": 750000,
+   "from": "",
+   "deadline": "2031-12-31",
+   "note": ""
+  },
+  {
+   "id": "one-million",
+   "kind": "milestone",
+   "label": "€1m of assets",
+   "view": "Household",
+   "metric": "total_assets",
+   "unit": "amount",
+   "target": 1000000,
+   "from": "",
+   "deadline": "",
+   "note": ""
+  },
+  {
+   "id": "robin-invested",
+   "kind": "milestone",
+   "label": "Robin: €200k invested",
+   "view": "Robin",
+   "metric": "invested",
+   "unit": "amount",
+   "target": 200000,
+   "from": "",
+   "deadline": "2028-12-31",
+   "note": ""
+  }
+ ],
+ "published": {}
+}

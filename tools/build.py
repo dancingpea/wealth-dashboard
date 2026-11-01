@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build everything that ships: demo data, the live demo page, and the skill zip.
+"""Build everything that ships: demo state, the live demo page, screenshots' source, and the skill zip.
 
     python3 tools/build.py
 
 Outputs:
-  plugin/skills/wealth-dashboard/assets/demo-data.json   (fictional data)
+  plugin/skills/wealth-dashboard/assets/demo-state.json   (invented household)
   docs/index.html                                          (live demo, served by GitHub Pages)
   dist/wealth-dashboard.zip                                (upload this in Claude: Customize > Skills)
 """
@@ -53,13 +53,14 @@ def zip_skill():
                 info.external_attr = (0o755 if f.endswith(".py") else 0o644) << 16
                 with open(full, "rb") as fh:
                     z.writestr(info, fh.read())
-    print("Wrote %s" % os.path.relpath(out, ROOT))
+    print("Wrote %s (%d KB)" % (os.path.relpath(out, ROOT), os.path.getsize(out) // 1024))
 
 
 if __name__ == "__main__":
     check_skill_md()
     run("tools/make_demo.py")
     wealth = os.path.join(SKILL, "scripts", "wealth.py")
-    run(wealth, "new", "docs/index.html", "--from", os.path.join(SKILL, "assets", "demo-data.json"), "--force")
-    run(wealth, "validate", "docs/index.html")
+    state = os.path.join(SKILL, "assets", "demo-state.json")
+    run(wealth, "validate", state)
+    run(wealth, "standalone", state, "docs/index.html")
     zip_skill()

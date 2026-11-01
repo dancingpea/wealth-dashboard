@@ -35,8 +35,7 @@ account's `--source` (or the holding's `--price-source`) so the next run repeats
 - Use the latest close (or the price on the snapshot date for a past update). Check the currency of the
   quote matches the holding's currency; a London listing may be in GBX (pence): divide by 100 for GBP.
 - Record the date: `prices --set VWCE=142.30 --date 2026-10-31 --source "Xetra close"`.
-- FX: use a reference rate for the same date (ECB euro reference rates for EUR; otherwise a major source).
-  `--fx USD=0.861` means 1 USD = 0.861 in base currency.
+- FX: see "Exchange rates" below.
 - If you can't find a reliable price, keep the old one and say which one is stale. The page flags prices
   older than 35 days.
 - Funds without a ticker (pension funds, some mutual funds): search by ISIN or the fund's name; if nothing is
@@ -65,6 +64,9 @@ account's `--source` (or the holding's `--price-source`) so the next run repeats
 
 - Defined-contribution pots: value from the provider portal or annual statement. Usually updated quarterly
   or yearly; carry forward in between (it shows as estimated, which is correct).
+- Record the amount paid in each month (employer plus own) with `account --monthly-contribution`: it is counted as
+  saving in the "saved, markets, gifts" split and in the projection. If the pension is fully invested in one public
+  fund, you can also value it between statements as units × the fund's price (ask how many units they hold).
 - Defined-benefit and state pensions show an expected yearly income, not a pot. Leave them out of net worth
   unless the person insists; if they do, ask them which value they want to use and note it as their estimate.
 - Don't count the same money twice if a pension is also visible in a broker account.
@@ -89,19 +91,33 @@ account's `--source` (or the holding's `--price-source`) so the next run repeats
 ## Loans
 
 - Annuity (equal monthly payments): `{"type":"annuity","principal":280000,"annual_rate":0.038,"years":30,"start":"2022-05-01"}`.
-  `principal` and `start` are the original loan amount and first month. If they only know today's balance,
+  `principal` is the original amount and `start` the month of the first payment. If they only know today's balance,
   use today's balance as principal, the remaining term as years, and this month as start.
-- Linear (fixed capital repayment each month): `{"type":"linear","principal":200000,"years":25,"start":"2024-01-01"}`.
+- Linear (same capital repaid each month, interest on top): `{"type":"linear","principal":200000,"annual_rate":0.035,"years":25,"start":"2024-01-01"}`.
+- The schedule feeds the "Debt repayment" card and the projection, and splits loan payments in the budget: map the
+  budget category that holds the payment to `Loan`, so its interest counts as needs and its principal as saved.
 - Several loan parts (common for Dutch mortgages): one account per part, all in group `debt`.
 - Extra repayments, rate resets or refinancing: update the formula to the new balance and terms from that
   date (same rule as above).
 - Compare with a statement once a year if they have one.
 
-## Inflation
+## Exchange rates
 
-- Flat rate (simple): `inflation --rate 0.02`.
-- Official index (accurate): store monthly index values with `inflation --set YYYY-MM=<value> --source ...`.
-  Use one series consistently, for example: Eurostat HICP (euro area or the person's country), US CPI-U
-  (BLS), UK CPI (ONS), France IPC (INSEE), Netherlands CPI (CBS), Germany VPI (Destatis). Add the latest
-  month at each check-in; indexes are published with a delay of 2 to 6 weeks, so the latest available month
-  is fine. Store at least one value at or before the first snapshot so the whole chart can be adjusted.
+- Always "base currency per 1 unit of the other currency": with a EUR base, `--fx USD=0.861` means 1 USD = 0.861 EUR.
+- Use a reference rate for the same date (ECB euro reference rates for EUR; otherwise a major source).
+- Each monthly run passes the rates of every position currency to `W prices --fx`, plus EUR and USD when the base is
+  something else: the comparison section converts the household's figures into euros and dollars with them.
+
+## Regions (for "Investments by region")
+
+- Funds: the "geographic breakdown" on the issuer's factsheet (iShares, Vanguard, Amundi, Xtrackers, etc.). Group into
+  United States, Europe, Japan, Other developed, Emerging markets (or finer if they like), weights adding up to 1.
+- Single shares: the company's home country region at 1.
+- Pensions invested in a known fund: the same, recorded on the account (`account --region`).
+- Refresh once a year at most; region weights move slowly.
+
+## The comparison section
+
+- The survey tables ship with the skill (`assets/reference/`), already brought to recent prices. Nothing about the
+  household is sent anywhere: the page places their figures in those tables in the browser.
+- New survey waves come with new versions of the skill. Nothing to do monthly.

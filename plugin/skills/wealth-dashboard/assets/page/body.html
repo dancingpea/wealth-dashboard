@@ -1,0 +1,401 @@
+<div class="pt">
+  <header class="pt-head">
+    <h1 class="pt-title" id="top">Wealth dashboard</h1>
+    <span class="pt-pill" id="asof-pill">As of <span class="dash-skeleton" data-source="kpis" data-field="as_of" data-where="view=Household">—</span></span>
+  </header>
+  <div class="pt-tabs" role="tablist">
+    <button class="pt-tab" role="tab" id="tab-overview" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="pt-tab" role="tab" id="tab-cash" data-tab="cash" aria-selected="false">Cash &amp; spending</button>
+    <button class="pt-tab" role="tab" id="tab-goals" data-tab="goals" aria-selected="false">Goals</button>
+    <button class="pt-tab" role="tab" id="tab-investments" data-tab="investments" aria-selected="false">Investments</button>
+    <!--WD:LIVE_TAB-->
+  </div>
+  <div class="pt-controls" id="controls">
+    <div class="pt-seg" role="group" aria-label="Whose wealth" id="owner-seg"></div>
+    <div class="pt-seg" role="group" aria-label="Period" id="range-seg">
+      <button data-range="1M">1M</button><button data-range="YTD">YTD</button><button data-range="LTM">LTM</button><button data-range="5Y">5Y</button><button data-range="ALL">All</button>
+    </div>
+  </div>
+
+  <!-- ===================== OVERVIEW ===================== -->
+  <section id="overview" class="pt-page" role="tabpanel">
+    <p class="pt-takeaway" id="takeaway">
+      <span id="tk-who">Household</span> net worth is
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="net_worth" data-where="view=Household">—</span>:
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="total_assets" data-where="view=Household">—</span> of assets less
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="debt_abs" data-where="view=Household">—</span> of debt.
+      Since 1 January it has <span id="tk-dir">grown</span>
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="change_ytd_abs" data-where="view=Household">—</span>:
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="saved_ytd" data-where="view=Household">—</span> saved,
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="markets_ytd" data-where="view=Household">—</span> from markets and revaluation, and
+      <span class="pt-num dash-skeleton" data-source="kpis" data-field="gifts_ytd" data-where="view=Household">—</span> in gifts.
+    </p>
+
+    <section class="pt-kpis" id="headline">
+      <div class="pt-card">
+        <div class="pt-kpi-label">Net worth</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="kpis" data-field="net_worth" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub"><span class="pt-signed dash-skeleton" data-source="kpis" data-field="nw_mtd" data-where="view=Household">—</span> since 1st of month</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Total assets</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="kpis" data-field="total_assets" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub">Before debt</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Invested assets</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="kpis" data-field="invested" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub"><span class="dash-skeleton" data-source="kpis" data-field="invested_share" data-where="view=Household">—</span> of assets; includes pensions</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Other assets</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="kpis" data-field="other" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub"><span class="dash-skeleton" data-source="kpis" data-field="other_desc" data-where="view=Household">—</span></div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Debt</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="kpis" data-field="debt_abs" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub"><span class="dash-skeleton" data-source="loan_kpis" data-field="end_note" data-row="0">—</span></div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Change since 1 January</div>
+        <span class="pt-kpi-value pt-signed dash-skeleton" data-source="kpis" data-field="change_ytd" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub"><span class="pt-signed dash-skeleton" data-source="kpis" data-field="markets_ytd" data-where="view=Household">—</span> from markets</div>
+      </div>
+      <div class="pt-card" id="goals-tile">
+        <div class="pt-kpi-label">Goals on track</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="goals_kpis" data-field="on_track_txt" data-row="0">—</span>
+        <div class="pt-kpi-sub">Kept <span class="dash-skeleton" data-source="goals_kpis" data-field="savings_share" data-row="0">—</span> of income, goal <span class="dash-skeleton" data-source="goals_kpis" data-field="savings_target" data-row="0">—</span> · <button class="pt-link" data-goto="goals">Goals</button></div>
+      </div>
+    </section>
+
+    <section class="pt-card pt-full" id="over-time">
+      <div class="pt-card-head">
+        <h2 class="pt-card-title">Wealth over time</h2>
+        <div class="pt-sub-controls">
+          <div class="pt-seg" role="group" aria-label="Chart view" id="view-seg"><button data-view="line">Lines</button><button data-view="stack">Stacked</button></div>
+          <div class="pt-seg" role="group" aria-label="Debt" id="debt-seg"><button data-debt="net">Debt netted</button><button data-debt="separate">Debt separate</button></div>
+        </div>
+      </div>
+      <p class="pt-note" id="over-time-note">Month-end values, plus today.</p>
+      <div class="pt-legend" id="assets-legend"></div>
+      <div class="pt-chart dash-skeleton" id="chart-time" data-source="series by_category"></div>
+      <div class="pt-range-note" id="time-range-note"></div>
+    </section>
+
+    <div class="pt-grid">
+      <section class="pt-card" id="breakdown">
+        <h2 class="pt-card-title">Breakdown</h2>
+        <p class="pt-note">Each category as a share of total assets; debt shown against the same total.</p>
+        <div class="pt-bars dash-skeleton" id="breakdown-bars" data-source="breakdown"></div>
+      </section>
+      <section class="pt-card" id="exposure">
+        <h2 class="pt-card-title">Investments by region, look-through</h2>
+        <p class="pt-note">Funds split into the regions they hold; single shares counted in their home region. <span class="dash-skeleton" data-source="exposure_kpis" data-field="summary" data-where="view=Household">—</span></p>
+        <div class="pt-bars dash-skeleton" id="exposure-bars" data-source="exposure"></div>
+      </section>
+    </div>
+
+    <section class="pt-card pt-full" id="compare">
+      <div class="pt-card-head">
+        <h2 class="pt-card-title">How you compare</h2>
+        <div class="pt-sub-controls">
+          <div class="pt-seg" role="group" aria-label="Pensions in wealth" id="ppen-seg"><button data-ppen="without">Without pensions</button><button data-ppen="with">With pensions</button></div>
+        </div>
+      </div>
+      <p class="pt-note" id="compare-note">Where <span id="cmp-who">the household</span> sits in each country: 75th percentile means richer than 75% of the group. Survey figures are brought to today's prices; the latest surveys date from 2022 to 2025.</p>
+      <div class="pt-chips" id="cmp-countries" role="group" aria-label="Countries"></div>
+      <div class="pt-cmp dash-skeleton" id="cmp-list" data-source="peers_view"></div>
+      <details class="pt-details">
+        <summary>How these are worked out</summary>
+        <ul class="pt-assume">
+          <li>Wealth: net worth against households, all ages and the same age group (age of the main earner, here the oldest adult). Survey wealth leaves out pension rights, so the default here is without pensions; the US survey counts retirement accounts, so compare the US with pensions on.</li>
+          <li>Netherlands wealth is from CBS tax records, which also leave out cars. Other European countries are from the ECB household survey, which gives every tenth percentile for all households but only the median by age: there, the age-group percentile is an estimate that assumes the same spread as all households. US figures are from the Federal Reserve's Survey of Consumer Finances.</li>
+          <li>Income per person: your household's income over the last 12 budget months, after tax, divided by the standard scale (1 for the first adult, 0.5 for each other adult or child 14 and over, 0.3 per child under 14), against Eurostat's figures for everyone in the country. Not available for the US.</li>
+          <li>Household gross income and personal earnings need each adult's gross yearly income: ask Claude to add it. Earnings are compared with full-time employees (Eurostat or the US BLS); with only a few published points, those percentiles are estimates.</li>
+          <li>Your figures are converted at today's exchange rates, with no adjustment for differences in prices between countries. A person's view compares their own wealth (joint money split as set) with households, since no survey measures individuals' wealth.</li>
+        </ul>
+      </details>
+    </section>
+
+    <div class="pt-grid">
+      <section class="pt-card" id="debt-card">
+        <h2 class="pt-card-title">Debt repayment</h2>
+        <p class="pt-note" id="debt-note"><span class="dash-skeleton" data-source="loan_kpis" data-field="left" data-row="0">—</span> left on loans with a repayment schedule, <span class="dash-skeleton" data-source="loan_kpis" data-field="payments_left" data-row="0">—</span> payments of <span class="dash-skeleton" data-source="loan_kpis" data-field="payment" data-row="0">—</span> to go; about <span class="dash-skeleton" data-source="loan_kpis" data-field="cost_left" data-row="0">—</span> of interest left in total.</p>
+        <p class="pt-note" id="debt-none" hidden>No loan with a repayment schedule. Debts without one are updated at each monthly check-in.</p>
+        <div class="pt-mini-chart dash-skeleton" id="chart-loan" data-source="loan"></div>
+      </section>
+      <section class="pt-card" id="assumptions">
+        <h2 class="pt-card-title">Assumptions</h2>
+        <p class="pt-note">How values that aren't read from a statement or a price are worked out.</p>
+        <ul class="pt-notes dash-skeleton" id="notes-list" data-source="notes"></ul>
+      </section>
+    </div>
+
+    <section class="pt-card pt-full" id="holdings">
+      <h2 class="pt-card-title">Everything you own and owe</h2>
+      <p class="pt-note" id="holdings-note">Every line today and how it updates. Joint accounts are split between each person's view as set; "estimated" means it kept an earlier month's value.</p>
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="holdings-table" data-source="latest_items" data-row-key="view,item">
+          <thead><tr>
+            <th data-field="item">Holding</th>
+            <th data-field="owner" class="pt-hide-narrow">Owner</th>
+            <th data-field="category" class="pt-hide-narrow">Category</th>
+            <th data-field="value" class="pt-r">Value</th>
+            <th data-field="updates_via" class="pt-hide-narrow">Updates via</th>
+          </tr></thead>
+          <tbody id="holdings-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="pt-card pt-full" id="checkin">
+      <h2 class="pt-card-title">What updates when</h2>
+      <p class="pt-note">One run a month. Anything you skip keeps last month's value and shows as estimated.</p>
+      <div class="pt-table-wrap">
+        <table class="pt-table" data-source="checkin" data-row-key="item">
+          <thead><tr><th data-field="item">Item</th><th data-field="cadence" class="pt-hide-narrow">How often</th><th data-field="next">Next</th><th data-field="how" class="pt-hide-narrow">How</th></tr></thead>
+          <tbody id="checkin-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- ===================== CASH & SPENDING ===================== -->
+  <section id="cash" class="pt-page" role="tabpanel" hidden>
+    <section class="pt-kpis" id="cash-headline">
+      <div class="pt-card">
+        <div class="pt-kpi-label">Cash today</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="cash_kpis" data-field="cash" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub">All current and savings accounts</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Months of spending covered</div>
+        <span class="pt-kpi-value dash-skeleton" data-source="cash_kpis" data-field="months_covered" data-where="view=Household">—</span>
+        <div class="pt-kpi-sub">At <span class="dash-skeleton" data-source="cf_kpis" data-field="avg_spending" data-row="0">—</span> a month (household, last 12 months); goal <span class="dash-skeleton" data-source="goals_kpis" data-field="cash_months_target" data-row="0">—</span> months</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Saved per month</div>
+        <span class="pt-kpi-value pt-signed dash-skeleton" data-source="cf_kpis" data-field="avg_saved" data-row="0">—</span>
+        <div class="pt-kpi-sub">Last 12 months, loan principal counted as saving</div>
+      </div>
+      <div class="pt-card">
+        <div class="pt-kpi-label">Savings rate</div>
+        <span class="pt-kpi-value pt-signed dash-skeleton" data-source="cf_kpis" data-field="savings_rate" data-row="0">—</span>
+        <div class="pt-kpi-sub">Of <span class="dash-skeleton" data-source="cf_kpis" data-field="avg_income" data-row="0">—</span> income a month; goal <span class="dash-skeleton" data-source="goals_kpis" data-field="savings_target" data-row="0">—</span></div>
+      </div>
+    </section>
+
+    <section class="pt-card pt-full" id="cash-budget">
+      <div class="pt-card-head">
+        <h2 class="pt-card-title">Budget against your goals</h2>
+        <button class="pt-link" data-goto="goals">Open Goals</button>
+      </div>
+      <p class="pt-note">Last 12 months, as a share of household income. The black tick on each bar is the goal: needs and wants are limits, savings a minimum; a bar turns red when it misses.</p>
+      <div class="pt-budget-bars dash-skeleton" id="cash-budget-bars" data-source="budget"></div>
+    </section>
+
+    <div class="pt-grid">
+      <section class="pt-card" id="cash-accounts">
+        <h2 class="pt-card-title">Cash by account</h2>
+        <p class="pt-note">Today. Joint accounts are split between each person's view as set.</p>
+        <div class="pt-table-wrap">
+          <table class="pt-table" data-source="cash_items" data-row-key="view,item">
+            <thead><tr><th data-field="item">Account</th><th data-field="owner" class="pt-hide-narrow">Owner</th><th data-field="value" class="pt-r">Balance</th></tr></thead>
+            <tbody id="cash-body"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="pt-card" id="cash-history">
+        <h2 class="pt-card-title">Cash over time</h2>
+        <p class="pt-note">Month-end balances across all cash accounts.</p>
+        <div class="pt-chart dash-skeleton" id="chart-cash" data-source="cash_series"></div>
+        <div class="pt-range-note" id="cash-range-note"></div>
+      </section>
+    </div>
+
+    <section class="pt-card pt-full" id="cashflow">
+      <h2 class="pt-card-title">Monthly income and spending</h2>
+      <p class="pt-note">Household, from your monthly budget. The line is what was left over, with loan principal counted as saving rather than spending.</p>
+      <div class="pt-legend" id="cf-legend"></div>
+      <div class="pt-chart dash-skeleton" id="chart-cf" data-source="cashflow"></div>
+      <div class="pt-range-note" id="cf-range-note"></div>
+    </section>
+
+    <section class="pt-card pt-full" id="spending">
+      <h2 class="pt-card-title">Where the money goes</h2>
+      <p class="pt-note">Average per month over the last 12 months, by category, grouped into needs, wants and loan payments.</p>
+      <div class="pt-bars dash-skeleton" id="spend-bars" data-source="spend_cats"></div>
+    </section>
+  </section>
+
+  <!-- ===================== GOALS ===================== -->
+  <section id="goals" class="pt-page" role="tabpanel" hidden>
+    <p class="pt-takeaway">
+      <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="on_track_txt" data-row="0">—</span> goals are on track or reached.
+      Over the last 12 months the household kept <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="savings_share" data-row="0">—</span> of its income (goal at least <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="savings_target" data-row="0">—</span>),
+      spent <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="needs_share" data-row="0">—</span> on needs (limit <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="needs_target" data-row="0">—</span>)
+      and <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="wants_share" data-row="0">—</span> on wants (limit <span class="pt-num dash-skeleton" data-source="goals_kpis" data-field="wants_target" data-row="0">—</span>).
+    </p>
+
+    <section class="pt-card pt-full" id="budget-rule">
+      <div class="pt-card-head">
+        <h2 class="pt-card-title">Budget rule</h2>
+        <div class="pt-sub-controls">
+          <div class="pt-seg" role="group" aria-label="Months averaged" id="bperiod-seg"><button data-bperiod="1M">Last month</button><button data-bperiod="3M">3 months</button><button data-bperiod="12M">12 months</button></div>
+          <div class="pt-seg" role="group" aria-label="Show as" id="gunit-seg"><button data-gunit="pct">% of income</button><button data-gunit="eur" id="gunit-amount">Amount a month</button></div>
+        </div>
+      </div>
+      <p class="pt-note">Household income from your monthly budget, one-offs included, split into needs, wants and what was kept (loan principal counts as kept). Needs and wants are limits, savings a minimum. Average a month from <span class="dash-skeleton" data-source="budget" data-field="from" data-where="period=12M&amp;bucket=needs">—</span> to <span class="dash-skeleton" data-source="budget" data-field="to" data-where="period=12M&amp;bucket=needs">—</span>.</p>
+      <div class="pt-goal-tiles">
+        <div class="pt-goal-tile" id="goal-needs">
+          <div class="pt-kpi-label">Needs</div>
+          <span class="pt-kpi-value pt-g-main dash-skeleton" data-source="budget" data-field="share" data-where="period=12M&amp;bucket=needs">—</span>
+          <div class="pt-kpi-sub">Limit <span class="pt-g-target dash-skeleton" data-source="budget" data-field="target_share" data-where="period=12M&amp;bucket=needs">—</span> · <span class="pt-g-alt dash-skeleton" data-source="budget" data-field="actual" data-where="period=12M&amp;bucket=needs">—</span> <span class="pt-g-alt-unit">a month</span></div>
+          <div class="pt-kpi-sub"><span class="pt-g-status dash-skeleton" data-source="budget" data-field="status" data-where="period=12M&amp;bucket=needs">—</span>: <span class="dash-skeleton" data-source="budget" data-field="margin_abs" data-where="period=12M&amp;bucket=needs">—</span> a month <span class="dash-skeleton" data-source="budget" data-field="margin_word" data-where="period=12M&amp;bucket=needs">—</span></div>
+        </div>
+        <div class="pt-goal-tile" id="goal-wants">
+          <div class="pt-kpi-label">Wants</div>
+          <span class="pt-kpi-value pt-g-main dash-skeleton" data-source="budget" data-field="share" data-where="period=12M&amp;bucket=wants">—</span>
+          <div class="pt-kpi-sub">Limit <span class="pt-g-target dash-skeleton" data-source="budget" data-field="target_share" data-where="period=12M&amp;bucket=wants">—</span> · <span class="pt-g-alt dash-skeleton" data-source="budget" data-field="actual" data-where="period=12M&amp;bucket=wants">—</span> <span class="pt-g-alt-unit">a month</span></div>
+          <div class="pt-kpi-sub"><span class="pt-g-status dash-skeleton" data-source="budget" data-field="status" data-where="period=12M&amp;bucket=wants">—</span>: <span class="dash-skeleton" data-source="budget" data-field="margin_abs" data-where="period=12M&amp;bucket=wants">—</span> a month <span class="dash-skeleton" data-source="budget" data-field="margin_word" data-where="period=12M&amp;bucket=wants">—</span></div>
+        </div>
+        <div class="pt-goal-tile" id="goal-savings">
+          <div class="pt-kpi-label">Savings</div>
+          <span class="pt-kpi-value pt-g-main dash-skeleton" data-source="budget" data-field="share" data-where="period=12M&amp;bucket=savings">—</span>
+          <div class="pt-kpi-sub">Goal at least <span class="pt-g-target dash-skeleton" data-source="budget" data-field="target_share" data-where="period=12M&amp;bucket=savings">—</span> · <span class="pt-g-alt dash-skeleton" data-source="budget" data-field="actual" data-where="period=12M&amp;bucket=savings">—</span> <span class="pt-g-alt-unit">a month</span></div>
+          <div class="pt-kpi-sub"><span class="pt-g-status dash-skeleton" data-source="budget" data-field="status" data-where="period=12M&amp;bucket=savings">—</span>: <span class="dash-skeleton" data-source="budget" data-field="margin_abs" data-where="period=12M&amp;bucket=savings">—</span> a month <span class="dash-skeleton" data-source="budget" data-field="margin_word" data-where="period=12M&amp;bucket=savings">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pt-card pt-full" id="budget-trend">
+      <h2 class="pt-card-title">Each month against the goal</h2>
+      <p class="pt-note">Each budget month, as chosen above: a share of that month's income or an amount. The dashed line is the goal; a red bar missed it. The period buttons at the top set the months shown.</p>
+      <div class="pt-budget-trend dash-skeleton" id="chart-budget" data-source="budget_months goals"></div>
+      <div class="pt-range-note" id="budget-range-note"></div>
+    </section>
+
+    <section class="pt-card pt-full" id="goals-list">
+      <h2 class="pt-card-title">All goals</h2>
+      <p class="pt-note">Budget goals over the last 12 months. Milestones from today's figures; "at this pace" assumes the last 12 months' pace continues, gifts left out, with no investment growth; the projection below adds returns.</p>
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="goals-table" data-source="goal_status" data-row-key="id">
+          <thead><tr>
+            <th data-field="label">Goal</th>
+            <th data-field="view" class="pt-hide-narrow">For</th>
+            <th data-field="target" class="pt-r">Target</th>
+            <th data-field="current" class="pt-r">Now</th>
+            <th data-field="progress" class="pt-r pt-hide-narrow">Progress</th>
+            <th data-field="deadline">Deadline</th>
+            <th data-field="projected" class="pt-hide-narrow">At this pace</th>
+            <th data-field="status">Status</th>
+          </tr></thead>
+          <tbody id="goals-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="pt-card pt-full" id="projection">
+      <div class="pt-card-head">
+        <h2 class="pt-card-title">Where you could get to</h2>
+        <div class="pt-sub-controls">
+          <div class="pt-seg" role="group" aria-label="Measure" id="pmetric-seg"><button data-pmetric="total_assets">Assets</button><button data-pmetric="net_worth">Net worth</button></div>
+          <div class="pt-seg" role="group" aria-label="Money" id="preal-seg"><button data-preal="nominal">As recorded</button><button data-preal="real">Today's money</button></div>
+        </div>
+      </div>
+      <p class="pt-note">Household, from today. Each month <span class="dash-skeleton" data-source="projection_summary" data-field="saving" data-row="0">—</span> is invested (<span class="dash-skeleton" data-source="projection_summary" data-field="saving_basis" data-row="0">—</span>, plus pension contributions) and invested assets grow at a steady yearly return; cash, property and other assets stay as they are, and loans follow their schedule. Dashed lines are your amount goals.</p>
+      <div class="pt-mini-kpis" id="proj-kpis">
+        <div><div class="pt-kpi-label">Cautious, <span class="dash-skeleton" data-source="projection_summary" data-field="rate_low" data-row="0">—</span> a year</div><span class="pt-mini-value dash-skeleton" data-source="projection_summary" data-field="end_low" data-row="0">—</span><div class="pt-kpi-sub">in <span class="dash-skeleton" data-source="projection_summary" data-field="years" data-row="0">—</span></div></div>
+        <div><div class="pt-kpi-label">Middle, <span class="dash-skeleton" data-source="projection_summary" data-field="rate_mid" data-row="0">—</span> a year</div><span class="pt-mini-value dash-skeleton" data-source="projection_summary" data-field="end_mid" data-row="0">—</span><div class="pt-kpi-sub">in <span class="dash-skeleton" data-source="projection_summary" data-field="years" data-row="0">—</span></div></div>
+        <div><div class="pt-kpi-label">Strong, <span class="dash-skeleton" data-source="projection_summary" data-field="rate_high" data-row="0">—</span> a year</div><span class="pt-mini-value dash-skeleton" data-source="projection_summary" data-field="end_high" data-row="0">—</span><div class="pt-kpi-sub">in <span class="dash-skeleton" data-source="projection_summary" data-field="years" data-row="0">—</span></div></div>
+      </div>
+      <div class="pt-legend" id="proj-legend"></div>
+      <div class="pt-chart dash-skeleton" id="chart-proj" data-source="projection"></div>
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="proj-table" data-source="projection_kpis" data-row-key="goal">
+          <thead><tr><th data-field="label">Goal</th><th data-field="target" class="pt-r">Target</th><th data-field="low" class="pt-r">Cautious</th><th data-field="mid" class="pt-r">Middle</th><th data-field="high" class="pt-r">Strong</th></tr></thead>
+          <tbody id="proj-body"></tbody>
+        </table>
+      </div>
+      <p class="pt-note pt-note-after">Returns are before inflation unless you pick today's money. Ask Claude to change the returns, the monthly saving or the years shown.</p>
+    </section>
+
+    <div class="pt-grid">
+      <section class="pt-card" id="budget-map-card">
+        <h2 class="pt-card-title">What counts as needs and wants</h2>
+        <p class="pt-note">Your spending categories. A new category counts as wants until it is mapped.</p>
+        <div class="pt-table-wrap">
+          <table class="pt-table" data-source="budget_map" data-row-key="kind,category">
+            <thead><tr><th data-field="category">Category</th><th data-field="bucket">Counts as</th></tr></thead>
+            <tbody id="budget-map-body"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="pt-card" id="goals-how">
+        <h2 class="pt-card-title">Changing your goals</h2>
+        <ul class="pt-assume">
+          <li>Ask Claude in any chat, for example <span class="pt-chat">make my savings goal 25%</span>, <span class="pt-chat">add a goal of 500k net worth by 2032</span> or <span class="pt-chat">count Gym as a need</span>. The change shows here right away.</li>
+          <li>Budget goals: needs, wants or savings, as a share of income or an amount a month, optionally from a start month and with a deadline.</li>
+          <li>Milestones: a target for net worth, invested assets, total assets, cash, debt, or months of spending held in cash, with an optional deadline.</li>
+          <li>The same way you can change the projection's returns and monthly saving, how joint accounts are split, and the countries you compare with.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===================== INVESTMENTS ===================== -->
+  <section id="investments" class="pt-page" role="tabpanel" hidden></section>
+  <template id="investments-tpl">
+    <p class="pt-takeaway">
+      <span id="inv-who">Your</span> investment positions are worth <span class="pt-num dash-skeleton" data-source="inv_kpis" data-field="value" data-where="view=Household">—</span>
+      across <span class="pt-num dash-skeleton" data-source="inv_kpis" data-field="positions" data-where="view=Household">—</span> positions.
+      Where the purchase cost is known, they are <span class="pt-num dash-skeleton" data-source="inv_kpis" data-field="gain_abs" data-where="view=Household">—</span>
+      <span id="inv-dir">up</span> on what was paid (<span class="pt-num dash-skeleton" data-source="inv_kpis" data-field="ret" data-where="view=Household">—</span>).
+    </p>
+    <section class="pt-kpis" id="inv-headline">
+      <div class="pt-card"><div class="pt-kpi-label">Value of positions</div><span class="pt-kpi-value dash-skeleton" data-source="inv_kpis" data-field="value" data-where="view=Household">—</span><div class="pt-kpi-sub">At the latest prices</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Paid in</div><span class="pt-kpi-value dash-skeleton" data-source="inv_kpis" data-field="cost" data-where="view=Household">—</span><div class="pt-kpi-sub"><span class="dash-skeleton" data-source="inv_kpis" data-field="cost_cover" data-where="view=Household">—</span> of value has a known cost</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Gain since bought</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="inv_kpis" data-field="gain" data-where="view=Household">—</span><div class="pt-kpi-sub">Unrealized, before tax</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Return since bought</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="inv_kpis" data-field="ret" data-where="view=Household">—</span><div class="pt-kpi-sub">On cost, not annualized</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Prices as of</div><span class="pt-kpi-value dash-skeleton" data-source="inv_kpis" data-field="price_date" data-where="view=Household">—</span><div class="pt-kpi-sub"><span class="dash-skeleton" data-source="inv_kpis" data-field="stale_txt" data-where="view=Household">—</span></div></div>
+    </section>
+    <div class="pt-grid">
+      <section class="pt-card" id="inv-classes">
+        <h2 class="pt-card-title">By asset class</h2>
+        <p class="pt-note">Value of positions by what they are.</p>
+        <div class="pt-bars dash-skeleton" id="inv-class-bars" data-source="inv_classes"></div>
+      </section>
+      <section class="pt-card" id="inv-accounts">
+        <h2 class="pt-card-title">By account</h2>
+        <p class="pt-note">Value of positions in each account, plus its uninvested cash.</p>
+        <div class="pt-bars dash-skeleton" id="inv-account-bars" data-source="inv_accounts"></div>
+      </section>
+    </div>
+    <section class="pt-card pt-full" id="inv-positions">
+      <h2 class="pt-card-title">Positions</h2>
+      <p class="pt-note">Values in your currency at the exchange rate of the last update; prices in each position's own currency. Click a column to sort.</p>
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="inv-table" data-source="inv_positions" data-row-key="id">
+          <thead><tr>
+            <th data-field="name" class="pt-sortable">Position</th>
+            <th data-field="account" class="pt-sortable pt-hide-narrow">Account</th>
+            <th data-field="quantity" class="pt-r pt-sortable pt-hide-narrow">Quantity</th>
+            <th data-field="price" class="pt-r pt-sortable pt-hide-narrow">Price</th>
+            <th data-field="value" class="pt-r pt-sortable" aria-sort="descending">Value</th>
+            <th data-field="weight" class="pt-r pt-sortable pt-hide-narrow">Weight</th>
+            <th data-field="gain" class="pt-r pt-sortable">Gain</th>
+            <th data-field="ret" class="pt-r pt-sortable">Since bought</th>
+          </tr></thead>
+          <tbody id="inv-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="pt-card pt-full" id="inv-multiples">
+      <h2 class="pt-card-title">Each position over time</h2>
+      <p class="pt-note">The price recorded at each monthly update, with your average purchase price as a dashed line, largest positions first.</p>
+      <div class="pt-multiples dash-skeleton" id="inv-mini" data-source="price_history inv_positions"></div>
+    </section>
+  </template>
+  <!--WD:LIVE_SECTION-->
+</div>

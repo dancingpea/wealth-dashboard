@@ -1,0 +1,49 @@
+  <!-- ===================== LIVE BROKER (IBKR) ===================== -->
+  <section id="live" class="pt-page" role="tabpanel" hidden></section>
+  <template id="live-tpl">
+    <p class="pt-takeaway">
+      Your IBKR account is worth <span class="pt-num dash-skeleton" data-source="ibkr_kpis" data-field="net_value" data-row="0">—</span> net, live:
+      <span class="pt-num dash-skeleton" data-source="ibkr_kpis" data-field="shares_value" data-row="0">—</span> of positions across
+      <span class="pt-num dash-skeleton" data-source="ibkr_kpis" data-field="positions" data-row="0">—</span> lines, and a cash balance of
+      <span class="pt-num dash-skeleton" data-source="ibkr_kpis" data-field="cash" data-row="0">—</span>.
+      Time-weighted return this year: <span class="pt-num dash-skeleton" data-source="ibkr_kpis" data-field="return_ytd" data-row="0">—</span>.
+    </p>
+    <section class="pt-kpis" id="ibkr-headline">
+      <div class="pt-card"><div class="pt-kpi-label">Net value</div><span class="pt-kpi-value dash-skeleton" data-source="ibkr_kpis" data-field="net_value" data-row="0">—</span><div class="pt-kpi-sub">Positions plus cash, in the account's base currency</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Cash balance</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="ibkr_kpis" data-field="cash" data-row="0">—</span><div class="pt-kpi-sub" id="ibkr-cash-note">All currencies</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Return this year</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="ibkr_kpis" data-field="return_ytd" data-row="0">—</span><div class="pt-kpi-sub">Time-weighted, deposits excluded</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Return, last 12 months</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="ibkr_kpis" data-field="return_1y" data-row="0">—</span><div class="pt-kpi-sub">Time-weighted</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Unrealized profit</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="ibkr_kpis" data-field="unrealized_pnl" data-row="0">—</span><div class="pt-kpi-sub">On positions held now</div></div>
+      <div class="pt-card"><div class="pt-kpi-label">Today</div><span class="pt-kpi-value pt-signed dash-skeleton" data-source="ibkr_kpis" data-field="day_pnl" data-row="0">—</span><div class="pt-kpi-sub">Change in value today</div></div>
+    </section>
+    <section class="pt-card pt-full" id="ibkr-performance">
+      <h2 class="pt-card-title">Return over the period</h2>
+      <p class="pt-note">Time-weighted, as IBKR reports it, from the start of the period chosen above: deposits and withdrawals don't move the line. IBKR gives at most 12 months.</p>
+      <div class="pt-chart dash-skeleton" id="chart-ibkr" data-source="ibkr_performance"></div>
+      <div class="pt-range-note" id="ibkr-range-note"></div>
+    </section>
+    <section class="pt-card pt-full" id="ibkr-positions">
+      <h2 class="pt-card-title">Live positions</h2>
+      <p class="pt-note">Values at IBKR's exchange rate into the account's base currency; prices in each line's own currency. Click a column to sort.</p>
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="ibkr-table" data-source="ibkr_positions_base" data-row-key="symbol">
+          <thead><tr>
+            <th data-field="symbol" class="pt-sortable">Position</th>
+            <th data-field="quantity" class="pt-r pt-sortable pt-hide-narrow">Quantity</th>
+            <th data-field="price" class="pt-r pt-sortable pt-hide-narrow">Price</th>
+            <th data-field="value_base" class="pt-r pt-sortable" aria-sort="descending">Value</th>
+            <th data-field="weight" class="pt-r pt-sortable pt-hide-narrow">Weight</th>
+            <th data-field="pnl_base" class="pt-r pt-sortable">Profit</th>
+            <th data-field="pnl_pct" class="pt-r pt-sortable">Since bought</th>
+            <th data-field="day_pnl_base" class="pt-r pt-sortable pt-hide-narrow">Today</th>
+          </tr></thead>
+          <tbody id="ibkr-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="pt-card pt-full" id="ibkr-multiples">
+      <h2 class="pt-card-title">Each position, last six months</h2>
+      <p class="pt-note">Weekly closing price with your average cost as a dashed line, largest positions first. Lines on exchanges without a market data subscription show no chart.</p>
+      <div class="pt-multiples dash-skeleton" id="ibkr-mini" data-source="ibkr_history ibkr_positions_base"></div>
+    </section>
+  </template>

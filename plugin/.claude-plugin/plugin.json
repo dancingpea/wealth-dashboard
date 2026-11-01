@@ -1,7 +1,7 @@
 {
   "name": "wealth-dashboard",
-  "version": "1.0.0",
-  "description": "Interview-driven setup of a private net worth and budget dashboard, plus a monthly check-in that keeps it current",
+  "version": "2.0.0",
+  "description": "Interview-driven setup of a private wealth dashboard (net worth, investments, budget, goals, projection, comparisons) with a monthly check-in that keeps it current",
   "author": {
     "name": "dancing_pea",
     "url": "https://github.com/dancingpea"
@@ -9,5 +9,12 @@
   "homepage": "https://github.com/dancingpea/wealth-dashboard",
   "repository": "https://github.com/dancingpea/wealth-dashboard",
   "license": "MIT",
-  "keywords": ["finance", "net worth", "budget", "dashboard", "personal finance"]
+  "keywords": [
+    "finance",
+    "net worth",
+    "budget",
+    "dashboard",
+    "personal finance",
+    "goals"
+  ]
 }
